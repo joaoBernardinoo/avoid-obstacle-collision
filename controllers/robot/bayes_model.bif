@@ -1,0 +1,48 @@
+network unknown {
+}
+variable Action {
+    type discrete [ 4 ] { seguir, v_esq, v_dir, parar };
+}
+variable Direction {
+    type discrete [ 3 ] { esquerda, frente, direita };
+}
+variable Obstacle {
+    type discrete [ 2 ] { sim, nao };
+}
+variable Success {
+    type discrete [ 2 ] { sim, nao };
+}
+variable Visible {
+    type discrete [ 2 ] { sim, nao };
+}
+probability ( Action | Obstacle, Visible, Direction ) {
+    ( sim, sim, esquerda ) 0.2, 0.7, 0.1, 0.0;
+    ( sim, sim, frente ) 0.26, 0.07, 0.07, 0.6;
+    ( sim, sim, direita ) 0.1, 0.1, 0.8, 0.0;
+    ( sim, nao, esquerda ) 0.1, 0.8, 0.1, 0.0;
+    ( sim, nao, frente ) 0.1, 0.4, 0.4, 0.1;
+    ( sim, nao, direita ) 0.1, 0.1, 0.8, 0.0;
+    ( nao, sim, esquerda ) 0.9, 0.05, 0.05, 0.0;
+    ( nao, sim, frente ) 0.1, 0.8, 0.1, 0.0;
+    ( nao, sim, direita ) 0.1, 0.1, 0.8, 0.0;
+    ( nao, nao, esquerda ) 0.3, 0.3, 0.3, 0.1;
+    ( nao, nao, frente ) 0.3, 0.3, 0.3, 0.1;
+    ( nao, nao, direita ) 0.3, 0.3, 0.3, 0.1;
+
+}
+probability ( Direction ) {
+    table 0.33, 0.34, 0.33 ;
+}
+probability ( Obstacle ) {
+    table 0.5, 0.5 ;
+}
+probability ( Success | Action ) {
+    ( seguir ) 0.9, 0.1;
+    ( v_esq ) 0.6, 0.4;
+    ( v_dir ) 0.6, 0.4;
+    ( parar ) 0.99, 0.01;
+
+}
+probability ( Visible ) {
+    table 0.5, 0.5 ;
+}
