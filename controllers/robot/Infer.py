@@ -17,7 +17,7 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), 'bayes_model.bif')
 if os.path.exists(MODEL_PATH):
     with open(MODEL_PATH, 'rb') as f:
         model = DiscreteBayesianNetwork.load(MODEL_PATH)
-    print("[INFO] Modelo Bayesiano carregado de bayes_model.pkl")
+    print("[INFO] Modelo Bayesiano carregado de bayes_model")
 else:
     # 1. Definir a estrutura da Rede Bayesiana (nós e arestas/dependências)
     # A estrutura reflete as dependências causais que definimos antes.
@@ -98,12 +98,11 @@ else:
     
     # Adicionar as CPTs ao modelo
     model.add_cpds(cpt_A, cpt_S,cpt_D,cpt_O,cpt_V)
-    model.save(MODEL_PATH)
     # Verificar se o modelo e as CPTs são consistentes
     if not model.check_model():
         raise ValueError("O modelo Bayesiano não é válido.")
     model.save(MODEL_PATH)
-    print("[INFO] Modelo Bayesiano salvo em bayes_model.pkl")
+    print("[INFO] Modelo Bayesiano salvo em bayes_model")
 
 
 
@@ -211,11 +210,6 @@ def profile_bayesian():
     line_profiler.print_stats()
 
 if __name__ == '__main__':
-    # Export model CPTs to CSV first
-    csv_model = model.get_cpds()
-    print(csv_model)
-
-        # Then run the demo code
     acao1, suc1 = bayesian(dist=5.0, angle=0)
     acao2, suc2 = bayesian(dist=0.6, angle=5)
     acao3, suc3 = bayesian(dist=4.0, angle=45)
