@@ -44,7 +44,6 @@ def run(robot):
         lidar_data = lidar.getRangeImage()
         cameraData = camera.getImageArray()
 
-        # print(cameraData[0:3])
 
 def inferAction(dist, ang):
     """

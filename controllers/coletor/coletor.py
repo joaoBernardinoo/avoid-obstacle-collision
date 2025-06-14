@@ -62,7 +62,7 @@ for i in range(num_children):
             obstacle_nodes.append(child_node)
             break
 
-def getClosestObstacle(robot_node, obstacle_nodes):
+def GPS(robot_node, obstacle_nodes):
     # Posição do robô
     rob_pos = robot_node.getPosition()
     rob_rot = robot_node.getOrientation()
@@ -98,7 +98,8 @@ while robot.step(timestep) != -1 and step_count < max_steps:
     lidar_data = lidar.getRangeImage()
     camera_data = camera.getImageArray()
 
-    dist, ang = getClosestObstacle(robot_node, obstacle_nodes)
+    DistToObject, AngToTarget = GPS(robot_node, obstacle_nodes)
+    # DistToObject, AngToTarget = CNN(lidar_data,camera_data)
 
 
     # np.savez(os.path.join(SAVE_PATH, f"sample_{step_count}.npz"),
