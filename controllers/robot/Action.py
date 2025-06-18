@@ -3,30 +3,39 @@ import math
 # Definindo as funções que as ações devem chamar
 MAX_SPEED = 6.28  # maximum speed of the robot's motors
 
-def continueAction(left,right,timestep = 0):
+def continueAction(b_left,b_right,f_left,f_right,timestep = 0):
     """Função para a ação 'seguir'."""
     print("Executando: SEGUIR (continuar em frente)")
-    left.setVelocity(MAX_SPEED * 0.25)
-    right.setVelocity(MAX_SPEED * 0.25)
+    b_left.setVelocity(MAX_SPEED * 0.2)
+    b_right.setVelocity(MAX_SPEED * 0.2)
+    f_left.setVelocity(MAX_SPEED * 0.2)
+    f_right.setVelocity(MAX_SPEED * 0.2)    
 
-def turnLeftAction(left,right,turn_rate,timestep = 0):
+def turnLeftAction(b_left,b_right,f_left,f_right,turn_rate=0,timestep = 0):
     """Função para a ação 'virar esquerda'."""
     print("Executando: VIRAR ESQUERDA")
-    left.setVelocity(MAX_SPEED * -0.1)
-    right.setVelocity(MAX_SPEED * 0.3)
+    b_left.setVelocity(MAX_SPEED * -0.3)
+    f_left.setVelocity(MAX_SPEED * -0.3)
+    b_right.setVelocity(MAX_SPEED * 0.3)
+    f_right.setVelocity(MAX_SPEED * 0.3)
 
 
-def turnRightAction(left,right,turn_rate,timestep = 0):
+def turnRightAction(b_left,b_right,f_left,f_right,turn_rate=0,timestep = 0):
     """Função para a ação 'virar direita'."""
     print("Executando: VIRAR DIREITA")
-    left.setVelocity(MAX_SPEED * 0.3)
-    right.setVelocity(MAX_SPEED * -0.1)
+    b_left.setVelocity(MAX_SPEED * 0.3)
+    f_left.setVelocity(MAX_SPEED * 0.3)
+    b_right.setVelocity(MAX_SPEED * -0.3)
+    f_right.setVelocity(MAX_SPEED * -0.3)
 
-def stopAction(left,right,timestep = 0):
+def stopAction(b_left,b_right,f_left,f_right,timestep = 0):
     """Função para a ação 'parar'."""
     print("Executando: PARAR")
-    left.setVelocity(0)
-    right.setVelocity(0)
+    b_left.setVelocity(0)
+    b_right.setVelocity(0)
+    f_left.setVelocity(0)
+    f_right.setVelocity(0)
+
 
 def getClosestObstacle(robot_node, obstacle_nodes):
     # Posição do robô

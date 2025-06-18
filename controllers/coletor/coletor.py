@@ -101,6 +101,8 @@ while robot.step(timestep) != -1 and step_count < max_steps:
     DistToObject, AngToTarget = GPS(robot_node, obstacle_nodes)
     # DistToObject, AngToTarget = CNN(lidar_data,camera_data)
 
+    bayesian(DistToObject,AngToTarget)
+
 
     # np.savez(os.path.join(SAVE_PATH, f"sample_{step_count}.npz"),
     #          lidar=np.array(lidar_data),

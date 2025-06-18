@@ -1,115 +1,91 @@
-"""we bots robot controller."""
-
-# You may need to import some classes of the controller module. Ex:
-#  from controller import Robot, Motor, DistanceSensor
-from controller import Robot,Motor, Lidar,Camera, Supervisor # type: ignore
+from controller import Robot, Motor, Lidar, Camera, Supervisor # type: ignore
 import numpy as np
 
-from Action import *
-
-def run(robot):
-   
-
-    if True:
-        # create the Robot instance.
-        timestep = int(robot.getBasicTimeStep())
-        back_left_wheel = robot.getDevice('back left wheel')  # type: Motor
-        back_right_wheel = robot.getDevice('back right wheel')  # type: Motor
-        front_left_wheel = robot.getDevice('front left wheel')  # type: Motor
-        front_right_wheel = robot.getDevice('front right wheel')  # type: Motor
-        # Enable the motors
-        back_left_wheel.setPosition(float('inf'))  # Set to infinity for velocity control
-        back_right_wheel.setPosition(float('inf'))  # Set to infinity for velocity control
-        front_left_wheel.setPosition(float('inf'))  # Set to infinity for velocity control
-        front_right_wheel.setPosition(float('inf'))  # Set to infinity for velocity control
-        
-        back_left_wheel.setVelocity(0.0)  # Initialize velocity to 0
-        back_right_wheel.setVelocity(0.0)  # Initialize velocity to 0
-        front_left_wheel.setVelocity(0.0)  # Initialize velocity to 0
-        front_right_wheel.setVelocity(0.0)  # Initialize velocity to 0
-        
-        lidar = robot.getDevice('Ibeo Lux')  # type: Lidar
-        lidar.enable(timestep)  # Enable the lidar sensor
-        lidar.enablePointCloud()  # Enable point cloud for lidar
-        
-        camera = robot.getDevice('camera')  # type: Camera
-        camera.enable(timestep)  # Enable the camera sensor
-    # Main loop:
-    # - perform simulation steps until Webots is stopping the controller
-
-    while robot.step(timestep) != -1:
-        front_left_wheel.setVelocity(MAX_SPEED* 0.24)
-        front_right_wheel.setVelocity(MAX_SPEED * 0.25)
-
-        lidar_data = lidar.getRangeImage()
-        cameraData = camera.getImageArray()
+import Action
+from Infer import bayesian,GPS
 
 
-def inferAction(dist, ang):
-    """
-    Controla o robô com base na distância e ângulo estimados.
-    Recebe como entrada:
-    - dist: distância discreta estimada ao obstáculo
-    - ang: ângulo discreto estimado ao alvo
-    """
-    # Exemplo de controle simples baseado em distância e ângulo
-    MAX_SPEED = 6.28  # velocidade máxima dos motores
-    # speed = MAX_SPEED * (1 - dist / 10)  # reduz a velocidade conforme a distância aumenta
-    # turn_rate = ang / 180 * np.pi  # converte ângulo para radianos
-    action = "stop"
+robot = Supervisor()
+timestep = int(robot.getBasicTimeStep())
 
-    return action
+# Motores
+wheels = [
+    robot.getDevice('back left wheel'),
+    robot.getDevice('back right wheel'),
+    robot.getDevice('front left wheel'),
+    robot.getDevice('front right wheel')
+]
+for wheel in wheels:
+    wheel.setPosition(float('inf'))
+    wheel.setVelocity(0.0)
 
-def infer(lidar_data, camera_image):
-    """
-    Realiza inferência usando uma RNA treinada para prever:
-    - DistToObject: distância estimada ao obstáculo
-    - AngToTarget: ângulo estimado ao alvo
-    Recebe como entrada:
-    - lidar_data: lista/array de pontos do LIDAR
-    - camera_image: imagem da câmera (formato Webots)
-    Retorna:
-    - [dist, ang]: valores contínuos
-    """
-    # Exemplo usando PyTorch (adapte para seu framework/modelo)
-    try:
-        
-        # Carregue o modelo apenas uma vez (singleton)
-        if not hasattr(infer, 'model'):
-            # Substitua 'model.pth' pelo caminho do seu modelo treinado
-            infer.model = torch.load('model.pth', map_location='cpu')
-            infer.model.eval()
+# Sensores
+lidar = robot.getDevice('Ibeo Lux')
+lidar.enable(timestep)
+lidar.enablePointCloud()
+camera = robot.getDevice('camera')
+camera.enable(timestep)
 
-        model = infer.model
-        # Pré-processamento dos dados do LIDAR
-        lidar_np = np.array(lidar_data, dtype=np.float32)
-        # Pré-processamento da imagem da câmera
-        # Exemplo: converter imagem Webots para array numpy (ajuste conforme necessário)
-        img_width = 100  # ajuste para o tamanho do seu modelo
-        img_height = 2
+# Supervisor para acessar posição do robô e obstáculos
+robot_node = robot.getSelf()
+# Obstáculos e objetivo conforme nomes do .wbt
+find_nodes = [
+    'box(1)',
+    'box(2)',
+    'box(3)',
+    'blue-ball',
+    'blue-ball(1)',
+    'blue-ball(2)',
+    'blue-ball(3)',
+    'blue-ball(4)',
+    'blue-ball(5)',
+    'objective']
 
-        # camera_image pode ser um buffer, converta para numpy array
-        img_np = np.frombuffer(camera_image, dtype=np.uint8)
-        img_np = img_np.reshape((img_height, img_width, 4))[:, :, :3]  # RGBA para RGB
-        # Normalização e reshape conforme o modelo
-        lidar_tensor = torch.tensor(lidar_np).unsqueeze(0)  # batch x features
-        img_tensor = torch.tensor(img_np).permute(2, 0, 1).unsqueeze(0).float() / 255.0  # batch x C x H x W
-        # Inferência
+root_node = robot.getRoot()
+children_field = root_node.getField('children')
+num_children = children_field.getCount()
 
-        with torch.no_grad():
-            output = model(lidar_tensor, img_tensor)
-            dist = float(output[0, 0].item())
-            ang = float(output[0, 1].item())
+obstacle_nodes = []
 
-        return [dist, ang]
+for i in range(num_children):
+    child_node = children_field.getMFNode(i)
+    name_field = child_node.getField('name') # Get the 'name' field object
+    if name_field:
+        node_name = name_field.getSFString() # Get the string value of the 'name' field
+        if node_name in find_nodes:
+            obstacle_nodes.append(child_node)
+
+step_count = 0
+max_steps = 1000
+
+while robot.step(timestep) != -1 and step_count < max_steps:
+    # Movimento automático simples: frente + curva suave
+    for i in range(2):
+        wheels[i].setVelocity(3.0)
+
+    #TAREFA
+    # Coleta de dados com a CNN
+    # lidar_data = lidar.getRangeImage() #[0.1,0.2, 3.0 ....]
+    # camera_data = camera.getImageArray() # (shape camera_w, camera_h, 3) 
+    # DistToObject, AngToTarget = CNN(lidar_data,camera_data)
+
+    # remover essa linha abaixo quando tiver o CNN
+    DistToObject, AngToTarget = GPS(robot_node, obstacle_nodes)
+    print("Distancia Objeto Mais Próximo",DistToObject)
+    print("Distancia Bolinha AMarela", AngToTarget)
+    action, p_sucess = bayesian(DistToObject,AngToTarget)
+
+    Action.action_map[action](wheels[0], wheels[1],wheels[2],wheels[3])
+    if p_sucess >= 0.9: break
     
-    except Exception as e:
-        # Caso não haja modelo ou erro, retorna valores dummy e avisa
-        print(f"[WARN] RNA não carregada ou erro na inferência: {e}")
-        return [0, 0]
+    
+    # np.savez(os.path.join(SAVE_PATH, f"sample_{step_count}.npz"),
+    #          lidar=np.array(lidar_data),
+    #          camera=np.array(camera_data),
+    #          dist=min_dist,
+    #          ang=min_angle)
+    
+    step_count += 1
 
-if __name__ == "__main__":
-    run(robot = Supervisor())
 
-
-
+print("Robô chegou ao seu destino.")
