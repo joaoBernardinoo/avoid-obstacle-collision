@@ -2,7 +2,7 @@ import math
 # Definindo as funções que as ações devem chamar
 MAX_SPEED = 6.28  # maximum speed of the robot's motors
 TURN_RATE_FOWARD = 0.5
-TURN_RATE_BACKWARD = 0.3
+TURN_RATE_BACKWARD = 0.2
 SPEED = 0.5
 SMOOTH = "normal"
 velocity = [0.0, 0.0, 0.0, 0.0]
@@ -10,7 +10,6 @@ velocity = [0.0, 0.0, 0.0, 0.0]
 
 def continueAction(timestep=0):
     """Função para a ação 'seguir'."""
-    print("Executando: SEGUIR (continuar em frente)")
     velocity[0] = MAX_SPEED * SPEED
     velocity[1] = MAX_SPEED * SPEED
     velocity[2] = MAX_SPEED * SPEED
@@ -19,7 +18,6 @@ def continueAction(timestep=0):
 
 def turnLeftAction(timestep=0):
     """Função para a ação 'virar esquerda'."""
-    print("Executando: VIRAR ESQUERDA")
     velocity[0] = MAX_SPEED * TURN_RATE_BACKWARD
     velocity[1] = MAX_SPEED * TURN_RATE_FOWARD
     velocity[2] = MAX_SPEED * TURN_RATE_BACKWARD
@@ -28,7 +26,6 @@ def turnLeftAction(timestep=0):
 
 def turnRightAction(timestep=0):
     """Função para a ação 'virar direita'."""
-    print("Executando: VIRAR DIREITA")
     velocity[0] = MAX_SPEED * TURN_RATE_FOWARD
     velocity[1] = MAX_SPEED * TURN_RATE_BACKWARD
     velocity[2] = MAX_SPEED * TURN_RATE_FOWARD
@@ -37,7 +34,6 @@ def turnRightAction(timestep=0):
 
 def stopAction(timestep=0):
     """Função para a ação 'parar'."""
-    print("Executando: PARAR")
     velocity[0] = (0)
     velocity[1] = (0)
     velocity[2] = (0)

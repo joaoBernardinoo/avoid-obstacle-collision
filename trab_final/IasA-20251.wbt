@@ -10,7 +10,7 @@ WorldInfo {
 }
 Viewpoint {
   orientation 0.5773502691896258 -0.5773502691896258 -0.5773502691896258 4.188785307179587
-  position 0.0012160845973519811 -8.21140011451603e-06 9.35713496502138
+  position 0.0012211459762444142 -3.1500069095808718e-06 11.147106709100726
   follow "Pioneer 3-AT"
   followType "None"
 }
@@ -786,7 +786,7 @@ DEF ROBOT Robot {
   recognitionColors [
     0.945098 0.811765 0.156863
   ]
-  controller "robot"
+  controller "genetic"
   supervisor TRUE
 }
 SolidBox {
