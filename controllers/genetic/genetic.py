@@ -53,6 +53,9 @@ class NavigationEnv(Supervisor, gym.Env):
         self._setup_webots()
         self._setup_gymnasium(max_episode_steps)
         self._initialize_state()
+        # Cache initialization
+        self._max_lidar_range = None
+        self._lidar_indices = None
 
     def _setup_webots(self):
         """Configura os componentes do Webots, como sensores e atuadores."""
@@ -76,8 +79,10 @@ class NavigationEnv(Supervisor, gym.Env):
         if not self.target_node:
             raise ValueError("O nó 'TARGET' não foi encontrado.")
 
-        self.initial_robot_translation = self.robot_node.getField('translation').getSFVec3f()
-        self.initial_robot_rotation = self.robot_node.getField('rotation').getSFRotation()
+        self.initial_robot_translation = self.robot_node.getField(
+            'translation').getSFVec3f()
+        self.initial_robot_rotation = self.robot_node.getField(
+            'rotation').getSFRotation()
 
     def _setup_gymnasium(self, max_episode_steps):
         """Configura os espaços de observação e ação do ambiente Gymnasium."""
@@ -92,7 +97,8 @@ class NavigationEnv(Supervisor, gym.Env):
         })
 
         self.action_space = spaces.Discrete(4)
-        self._action_to_name = {0: "seguir", 1: "v_esq", 2: "v_dir", 3: "parar"}
+        self._action_to_name = {0: "seguir",
+                                1: "v_esq", 2: "v_dir", 3: "parar"}
 
         self.max_episode_steps = max_episode_steps
 
@@ -101,28 +107,52 @@ class NavigationEnv(Supervisor, gym.Env):
         self.current_step = 0
         self.last_distance_to_target = 0.0
         self.simulation_running = True
+        # Cache for sensor data and calculations
+        self._cached_lidar_obs = None
+        self._cached_camera_image = None
+        self._cached_distance = None
+        self._cached_min_lidar_dist = None
 
     def _get_observation(self):
         """
         Obtém a observação do ambiente usando apenas dados dos sensores.
         Nenhuma informação do Supervisor é utilizada aqui.
+        Utiliza caching para minimizar chamadas à API do Webots.
         """
-        # Processamento dos dados do Lidar
-        lidar_raw = self.lidar.getRangeImage()
-        indices = np.linspace(0, len(lidar_raw) - 1, self.LIDAR_SAMPLES, dtype=int)
-        lidar_obs = np.array(lidar_raw)[indices]
-        lidar_obs[lidar_obs == np.inf] = self.lidar.getMaxRange()
-        lidar_obs = np.clip(lidar_obs / self.lidar.getMaxRange(), 0, 1).astype(np.float32)
+        # Initialize cached values if not set
+        if self._max_lidar_range is None:
+            self._max_lidar_range = self.lidar.getMaxRange()
+        if self._lidar_indices is None:
+            lidar_raw_len = len(self.lidar.getRangeImage())
+            self._lidar_indices = np.linspace(
+                0, lidar_raw_len - 1, self.LIDAR_SAMPLES, dtype=int)
 
-        # Processamento dos dados da Câmera
-        camera_image = np.array(self.camera.getImageArray(), dtype=np.uint8)
+        # Processamento dos dados do Lidar com caching
+        if self._cached_lidar_obs is None or self.current_step % 2 == 0:  # Update every 2 steps
+            lidar_raw = self.lidar.getRangeImage()
+            self._cached_lidar_obs = np.array(lidar_raw)[self._lidar_indices]
+            self._cached_lidar_obs[self._cached_lidar_obs ==
+                                   np.inf] = self._max_lidar_range
+            np.clip(self._cached_lidar_obs / self._max_lidar_range,
+                    0, 1, out=self._cached_lidar_obs)
+            self._cached_lidar_obs = self._cached_lidar_obs.astype(
+                np.float32, copy=False)
 
-        return {'lidar': lidar_obs, 'camera': camera_image}
+        # Processamento dos dados da Câmera com caching
+        if self._cached_camera_image is None or self.current_step % 2 == 0:  # Update every 2 steps
+            self._cached_camera_image = np.asarray(
+                self.camera.getImageArray(), dtype=np.uint8)
+
+        return {'lidar': self._cached_lidar_obs, 'camera': self._cached_camera_image}
 
     def _apply_action(self, action_id):
         """Aplica a ação selecionada ao robô."""
+        # Optimize attribute access by caching action map
+        if not hasattr(self, '_cached_action_map'):
+            self._cached_action_map = Action.action_map
         action_name = self._action_to_name.get(action_id, "parar")
-        action_function = Action.action_map.get(action_name, Action.stopAction)
+        action_function = self._cached_action_map.get(
+            action_name, Action.stopAction)
         action_function()
         Action.updateWheels(self.wheels, Action.velocity)
 
@@ -131,8 +161,10 @@ class NavigationEnv(Supervisor, gym.Env):
         super().reset(seed=seed)
         self.simulationResetPhysics()
         self.simulationReset()
-        self.robot_node.getField('translation').setSFVec3f(self.initial_robot_translation)
-        self.robot_node.getField('rotation').setSFRotation(self.initial_robot_rotation)
+        self.robot_node.getField('translation').setSFVec3f(
+            self.initial_robot_translation)
+        self.robot_node.getField('rotation').setSFRotation(
+            self.initial_robot_rotation)
         super().step(self.__timestep)
 
         self.wheels = []
@@ -145,6 +177,11 @@ class NavigationEnv(Supervisor, gym.Env):
         self.current_step = 0
         self.last_distance_to_target = self._get_distance_to_target()
         self._apply_action(3)  # Ação "parar"
+        # Reset caches
+        self._cached_lidar_obs = None
+        self._cached_camera_image = None
+        self._cached_distance = None
+        self._cached_min_lidar_dist = None
 
         return self._get_observation(), {}
 
@@ -161,7 +198,8 @@ class NavigationEnv(Supervisor, gym.Env):
         self._handle_keyboard_input(action)
 
         obs = self._get_observation()
-        reward, terminated, truncated = self._calculate_reward_and_status(action)
+        reward, terminated, truncated = self._calculate_reward_and_status(
+            action)
         return obs, reward, terminated, truncated, {}
 
     def _handle_keyboard_input(self, action):
@@ -176,7 +214,9 @@ class NavigationEnv(Supervisor, gym.Env):
     def _calculate_reward_and_status(self, action):
         """Calcula a recompensa e verifica se o episódio deve terminar."""
         dist_to_target = self._get_distance_to_target()
-        min_lidar_dist = np.min(self.lidar.getRangeImage())
+        # Cache min_lidar_dist to avoid multiple calls
+        if self._cached_min_lidar_dist is None or self.current_step % 3 == 0:  # Update every 3 steps
+            self._cached_min_lidar_dist = np.min(self.lidar.getRangeImage())
 
         reward = 0
         terminated = False
@@ -189,7 +229,7 @@ class NavigationEnv(Supervisor, gym.Env):
             reward += 200.0
             terminated = True
             print("Sucesso: Robô alcançou o alvo!")
-        elif min_lidar_dist < 0.2:
+        elif self._cached_min_lidar_dist < 0.2:
             reward -= 100.0
             terminated = True
             print("Falha: Colisão detectada!")
@@ -202,8 +242,12 @@ class NavigationEnv(Supervisor, gym.Env):
         return reward, terminated, truncated
 
     def _get_distance_to_target(self):
-        """Calcula a distância entre o robô e o alvo."""
-        return np.linalg.norm(np.array(self.robot_node.getPosition()) - np.array(self.target_node.getPosition()))
+        """Calcula a distância entre o robô e o alvo com caching para minimizar chamadas à API."""
+        if self._cached_distance is None or self.current_step % 5 == 0:  # Update every 5 steps
+            robot_pos = np.asarray(self.robot_node.getPosition())
+            target_pos = np.asarray(self.target_node.getPosition())
+            self._cached_distance = np.linalg.norm(robot_pos - target_pos)
+        return self._cached_distance
 
 
 def train_model(env, model_path="ppo_navigation_model.zip", device='cuda', total_timesteps=1_000_000):
@@ -226,6 +270,7 @@ def train_model(env, model_path="ppo_navigation_model.zip", device='cuda', total
         print("\nTreinamento interrompido. Salvando modelo...")
         model.save(model_path)
         print(f"Modelo salvo em '{model_path}'.")
+        return model
     return model
 
 
@@ -234,7 +279,7 @@ def replay_simulation(env, model):
     print("\n--- Iniciando Replay com o modelo treinado ---")
     obs, info = env.reset()
     while env.simulation_running:
-        action, _states = model.predict(obs, deterministic=True)
+        action, _states = model.predict(obs, deterministic=False)
         # Convert numpy array to scalar integer if necessary
         if isinstance(action, np.ndarray):
             action = action.item()
