@@ -4,7 +4,7 @@ MAX_SPEED = 6.28  # maximum speed of the robot's motors
 TURN_RATE_FOWARD = 0.5
 TURN_RATE_BACKWARD = 0.2
 SPEED = 0.9
-SMOOTH = "exp"
+SMOOTH = "normal"
 velocity = [0.0, 0.0, 0.0, 0.0]
 
 
