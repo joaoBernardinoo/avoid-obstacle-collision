@@ -11,7 +11,8 @@ WorldInfo {
 Viewpoint {
   orientation 0.5773502691896258 -0.5773502691896258 -0.5773502691896258 4.188785307179587
   position 0.0012160845973519811 -8.21140011451603e-06 9.35713496502138
-  followType "Mounted Shot"
+  follow "Pioneer 3-AT"
+  followType "None"
 }
 TexturedBackground {
   skyColor [
@@ -25,7 +26,7 @@ RectangleArena {
   floorAppearance NULL
   wallHeight 0.3
 }
-Robot {
+DEF ROBOT Robot {
   translation -1.8162215466727039 1.8231991083924433 -0.0021162659995556665
   rotation -8.617672006251165e-06 0.00030613443841523506 -0.9999999531037196 0.9436241345129235
   children [
@@ -34,8 +35,8 @@ Robot {
         JetBotRaspberryPiCamera {
           translation 0.23 0 0.18
           fieldOfView 1.67
-          width 100
-          height 2
+          width 200
+          height 40
         }
         Lidar {
           translation 0.228094 -1.59216e-07 0.15
@@ -222,8 +223,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.13316777116528936 0.1970000017861194 0.1099381957052306
-        rotation -0.6760046560968204 0.6759966739281302 -0.29333632876533555 2.5709296385622364
+        translation -0.13316777116528944 0.1970000017861194 0.1099381957052306
+        rotation -0.6760046560968195 0.6759966739281308 -0.29333632876533555 2.570929638562237
         children [
           DEF RIM_AND_TIRE_SHAPES Group {
             children [
@@ -415,8 +416,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation -0.13317699788539056 -0.19699999819027889 0.10994940161841824
-        rotation -0.6872130346640456 0.6872051334416538 -0.2355575291924925 2.6789123391403127
+        translation -0.13317699788539067 -0.19699999819027889 0.1099494016184182
+        rotation -0.6872130346640452 0.6872051334416545 -0.23555752919249262 2.6789123391403082
         children [
           USE RIM_AND_TIRE_SHAPES
           DEF RIGHT_CAP_AND_VALVE_SHAPES Group {
@@ -482,8 +483,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.13317298786390996 0.1970000023086336 0.11013162098410115
-        rotation -0.3964219142086112 0.39642063855170717 0.8280702526147388 4.524829193172164
+        translation 0.1331729878639099 0.1970000023086336 0.11013162098410113
+        rotation -0.3964219142086103 0.3964206385517096 0.8280702526147381 4.524829193172167
         children [
           USE RIM_AND_TIRE_SHAPES
           USE LEFT_CAP_AND_VALVE_SHAPES
@@ -510,8 +511,8 @@ Robot {
         }
       ]
       endPoint Solid {
-        translation 0.13295025047645237 -0.19699999766775145 0.11001865637424794
-        rotation -0.703240588160269 0.7032336791166508 0.10447520145976377 3.3497808883458355
+        translation 0.132987801920967 -0.1969985932887077 0.10993763015485715
+        rotation -0.7032399246424585 0.7032343007445895 0.10447548346448342 3.3497803181037926
         children [
           USE RIM_AND_TIRE_SHAPES
           USE RIGHT_CAP_AND_VALVE_SHAPES
@@ -782,6 +783,9 @@ Robot {
     density -1
     mass 8.8
   }
+  recognitionColors [
+    0.945098 0.811765 0.156863
+  ]
   controller "robot"
   supervisor TRUE
 }
@@ -808,7 +812,7 @@ SolidBox {
   }
 }
 SolidBox {
-  translation -1.38084 0.479809 0.25
+  translation -1.40982 0.487573 0.25
   rotation 0 0 1 -0.261795307179586
   name "box(1)"
   size 0.6 1 0.7
@@ -902,7 +906,7 @@ Solid {
   boundingObject USE BALL_SHAPE
   locked TRUE
 }
-Solid {
+DEF TARGET Solid {
   translation 1.8098832523150605 -1.7397171830982112 0.0999136719999644
   rotation 0.5236715939624836 0.21842389163525378 -0.8234434195739879 0.0022671155441386925
   children [

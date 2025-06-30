@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<BIF VERSION="0.3">
+  <NETWORK>
+    <NAME>UNTITLED</NAME>
+    <VARIABLE TYPE="nature">
+      <NAME>Action</NAME>
+      <OUTCOME>seguir</OUTCOME>
+      <OUTCOME>v_esq</OUTCOME>
+      <OUTCOME>v_dir</OUTCOME>
+      <OUTCOME>parar</OUTCOME>
+      <PROPERTY />
+    </VARIABLE>
+    <VARIABLE TYPE="nature">
+      <NAME>Direction</NAME>
+      <OUTCOME>esquerda</OUTCOME>
+      <OUTCOME>frente</OUTCOME>
+      <OUTCOME>direita</OUTCOME>
+      <PROPERTY />
+    </VARIABLE>
+    <VARIABLE TYPE="nature">
+      <NAME>ObstacleDetected</NAME>
+      <OUTCOME>sim</OUTCOME>
+      <OUTCOME>nao</OUTCOME>
+      <PROPERTY />
+    </VARIABLE>
+    <VARIABLE TYPE="nature">
+      <NAME>Success</NAME>
+      <OUTCOME>sim</OUTCOME>
+      <OUTCOME>nao</OUTCOME>
+      <PROPERTY />
+    </VARIABLE>
+    <VARIABLE TYPE="nature">
+      <NAME>TargetVisible</NAME>
+      <OUTCOME>sim</OUTCOME>
+      <OUTCOME>nao</OUTCOME>
+      <PROPERTY />
+    </VARIABLE>
+    <DEFINITION>
+      <FOR>Action</FOR>
+      <GIVEN>ObstacleDetected</GIVEN>
+      <GIVEN>TargetVisible</GIVEN>
+      <GIVEN>Direction</GIVEN>
+      <TABLE>0.4 0.25 0.1 0.25 0.6 0.1 0.1 0.2 0.4 0.1 0.25 0.25 0.1 0.55 0.1 0.25 0.1 0.35 0.35 0.2 0.1 0.1 0.55 0.25 0.7 0.15 0.15 0.0 0.6 0.2 0.2 0.0 0.1 0.1 0.8 0.0 0.1 0.5 0.3 0.1 0.1 0.4 0.4 0.1 0.1 0.3 0.5 0.1 </TABLE>
+    </DEFINITION>
+    <DEFINITION>
+      <FOR>Direction</FOR>
+      <TABLE>0.33 0.34 0.33 </TABLE>
+    </DEFINITION>
+    <DEFINITION>
+      <FOR>ObstacleDetected</FOR>
+      <TABLE>0.5 0.5 </TABLE>
+    </DEFINITION>
+    <DEFINITION>
+      <FOR>Success</FOR>
+      <GIVEN>Action</GIVEN>
+      <TABLE>0.9 0.1 0.6 0.4 0.6 0.4 0.99 0.01 </TABLE>
+    </DEFINITION>
+    <DEFINITION>
+      <FOR>TargetVisible</FOR>
+      <TABLE>0.5 0.5 </TABLE>
+    </DEFINITION>
+  </NETWORK>
+</BIF>

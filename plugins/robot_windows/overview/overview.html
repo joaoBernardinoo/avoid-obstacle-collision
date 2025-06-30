@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="stylesheet" type="text/css" href="generic.css" />
+    <link rel="icon" type="image/png" href="https://cyberbotics.com/assets/images/webots.png" />
+  </head>
+  <body>
+    <!--
+    References:
+    - animated tabs: https://www.w3schools.com/w3css/w3css_tabulators.asp
+    - responsive div layout: https://stackoverflow.com/questions/1091322/how-to-fade-to-display-inline-block
+    -->
+    <div>
+      <?xml version="1.0" encoding="utf-8"?>
+      <smile version="1.0" id="MyNetwork" numsamples="0" discsamples="0">
+        <nodes>
+          <cpt id="Obstacle">
+            <state id="sim" />
+            <state id="nao" />
+            <probabilities>0.5000000000000000 0.5000000000000000</probabilities>
+          </cpt>
+          <cpt id="Action">
+            <state id="seguir" />
+            <state id="v_esq" />
+            <state id="v_dir" />
+            <state id="parar" />
+            <parents>Obstacle Visible Direction</parents>
+            <probabilities
+              >0.2000000000000000 0.7000000000000000 0.1000000000000000 0.0000000000000000 0.2600000000000000 0.0700000000000000
+              0.0700000000000000 0.6000000000000000 0.1000000000000000 0.1000000000000000 0.8000000000000000 0.0000000000000000
+              0.1000000000000000 0.8000000000000000 0.1000000000000000 0.0000000000000000 0.1000000000000000 0.4000000000000000
+              0.4000000000000000 0.1000000000000000 0.1000000000000000 0.1000000000000000 0.8000000000000000 0.0000000000000000
+              0.9000000000000000 0.0500000000000000 0.0500000000000000 0.0000000000000000 0.1000000000000000 0.8000000000000000
+              0.1000000000000000 0.0000000000000000 0.1000000000000000 0.1000000000000000 0.8000000000000000 0.0000000000000000
+              0.3000000000000000 0.3000000000000000 0.3000000000000000 0.1000000000000000 0.3000000000000000 0.3000000000000000
+              0.3000000000000000 0.1000000000000000 0.3000000000000000 0.3000000000000000 0.3000000000000000
+              0.1000000000000000</probabilities
+            >
+          </cpt>
+          <cpt id="Visible">
+            <state id="sim" />
+            <state id="nao" />
+            <probabilities>0.5000000000000000 0.5000000000000000</probabilities>
+          </cpt>
+          <cpt id="Direction">
+            <state id="esquerda" />
+            <state id="frente" />
+            <state id="direita" />
+            <probabilities>0.3300000000000000 0.3400000000000000 0.3300000000000000</probabilities>
+          </cpt>
+          <cpt id="Success">
+            <state id="sim" />
+            <state id="nao" />
+            <parents>Action</parents>
+            <probabilities
+              >0.9000000000000000 0.1000000000000000 0.6000000000000000 0.4000000000000000 0.6000000000000000 0.4000000000000000
+              0.9900000000000000 0.0100000000000000</probabilities
+            >
+          </cpt>
+        </nodes>
+        <extensions>
+          <genie version="1.0" app="GeNIe 5.0.4830.0 ACADEMIC" name="MyNetwork">
+            <node id="Obstacle">
+              <name>Obstacle</name>
+              <interior color="e5f6f7" />
+              <outline color="000080" />
+              <font color="000000" name="Arial" size="8" />
+              <position>12 88 84 136</position>
+              <barchart active="true" width="128" height="128" />
+            </node>
+            <node id="Visible">
+              <name>Visible</name>
+              <interior color="e5f6f7" />
+              <outline color="000080" />
+              <font color="000000" name="Arial" size="8" />
+              <position>41 61 113 109</position>
+              <barchart active="true" width="128" height="128" />
+            </node>
+            <node id="Direction">
+              <name>Direction</name>
+              <interior color="e5f6f7" />
+              <outline color="000080" />
+              <font color="000000" name="Arial" size="8" />
+              <position>39 66 111 114</position>
+              <barchart active="true" width="128" height="128" />
+            </node>
+            <node id="Action">
+              <name>Action</name>
+              <interior color="e5f6f7" />
+              <outline color="000080" />
+              <font color="000000" name="Arial" size="8" />
+              <position>69 26 141 74</position>
+              <barchart active="true" width="128" height="128" />
+            </node>
+            <node id="Success">
+              <name>Success</name>
+              <interior color="e5f6f7" />
+              <outline color="000080" />
+              <font color="000000" name="Arial" size="8" />
+              <position>86 52 158 100</position>
+              <barchart active="true" width="128" height="128" />
+            </node>
+          </genie>
+        </extensions>
+      </smile>
+    </div>
+    <canvas id="canvas"></canvas>
+    <div ondragstart="return false">
+      <div id="menu">
+        <button id="menu-close-button" onclick="closeMenu()">&times;</button>
+      </div>
+      <div id="content">
+        <button id="menu-open-button" onclick="openMenu()">&#9776;</button>
+        <p id="no-controller-label">No controller.</p>
+      </div>
+    </div>
+    <script src="plot_widget.js"></script>
+    <script src="canvas.js"></script>
+    <script src="timeplot_line.js"></script>
+    <script src="timeplot_widget.js"></script>
+    <script src="radar_widget.js"></script>
+    <script src="window_manager.js"></script>
+    <script src="generic.js" type="module"></script>
+  </body>
+</html>

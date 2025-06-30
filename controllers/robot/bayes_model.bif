@@ -16,17 +16,17 @@ variable TargetVisible {
     type discrete [ 2 ] { sim, nao };
 }
 probability ( Action | ObstacleDetected, TargetVisible, Direction ) {
-    ( sim, sim, esquerda ) 0.1, 0.35, 0.1, 0.45;
-    ( sim, sim, frente ) 0.1, 0.35, 0.35, 0.2;
-    ( sim, sim, direita ) 0.1, 0.1, 0.35, 0.45;
-    ( sim, nao, esquerda ) 0.1, 0.35, 0.1, 0.45;
+    ( sim, sim, esquerda ) 0.6, 0.15, 0.1, 0.15;
+    ( sim, sim, frente ) 0.5, 0.1, 0.2, 0.2;
+    ( sim, sim, direita ) 0.6, 0.1, 0.15, 0.15;
+    ( sim, nao, esquerda ) 0.1, 0.55, 0.1, 0.25;
     ( sim, nao, frente ) 0.1, 0.35, 0.35, 0.2;
-    ( sim, nao, direita ) 0.1, 0.1, 0.35, 0.45;
+    ( sim, nao, direita ) 0.1, 0.1, 0.55, 0.25;
     ( nao, sim, esquerda ) 0.7, 0.15, 0.15, 0.0;
     ( nao, sim, frente ) 0.6, 0.2, 0.2, 0.0;
     ( nao, sim, direita ) 0.1, 0.1, 0.8, 0.0;
-    ( nao, nao, esquerda ) 0.1, 0.3, 0.5, 0.1;
-    ( nao, nao, frente ) 0.1, 0.3, 0.5, 0.1;
+    ( nao, nao, esquerda ) 0.1, 0.5, 0.3, 0.1;
+    ( nao, nao, frente ) 0.1, 0.4, 0.4, 0.1;
     ( nao, nao, direita ) 0.1, 0.3, 0.5, 0.1;
 
 }
