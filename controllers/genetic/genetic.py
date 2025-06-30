@@ -64,6 +64,7 @@ class NavigationEnv(Supervisor, gym.Env):
         # Configuração dos sensores
         self.lidar: Lidar = self.getDevice('Ibeo Lux')  # type: ignore
         self.lidar.enable(self.__timestep)
+        self.lidar.enablePointCloud()
         self.camera: Camera = self.getDevice('camera')  # type: ignore
         self.camera.enable(self.__timestep)
 
