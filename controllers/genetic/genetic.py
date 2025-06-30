@@ -87,13 +87,13 @@ class NavigationEnv(Supervisor, gym.Env):
 
     def _setup_gymnasium(self, max_episode_steps):
         """Configura os espaços de observação e ação do ambiente Gymnasium."""
-        self.LIDAR_SAMPLES = 64
+        self.LIDAR_SAMPLES = 20
         self.CAMERA_WIDTH = self.camera.getWidth()
         self.CAMERA_HEIGHT = self.camera.getHeight()
 
         # Espaço de observação como dicionário para Lidar e Câmera
         self.observation_space = spaces.Dict({
-            'lidar': spaces.Box(low=0, high=1, shape=(self.LIDAR_SAMPLES,), dtype=np.float32),
+            'lidar': spaces.Box(low=0, high=1, shape=(self.LIDAR_SAMPLES,), dtype=np.float16),
             'camera': spaces.Box(low=0, high=255, shape=(self.CAMERA_WIDTH, self.CAMERA_HEIGHT, 3), dtype=np.uint8)
         })
 
@@ -137,7 +137,7 @@ class NavigationEnv(Supervisor, gym.Env):
             np.clip(self._cached_lidar_obs / self._max_lidar_range,
                     0, 1, out=self._cached_lidar_obs)
             self._cached_lidar_obs = self._cached_lidar_obs.astype(
-                np.float32, copy=False)
+                np.float16, copy=False)
 
         # Processamento dos dados da Câmera com caching
         if self._cached_camera_image is None or self.current_step % 2 == 0:  # Update every 2 steps

@@ -9,8 +9,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.5773502691896258 -0.5773502691896258 -0.5773502691896258 4.188785307179587
-  position 0.0012211459762444142 -3.1500069095808718e-06 11.147106709100726
+  orientation 0.542562519354123 -0.5819362402657361 -0.605785543618768 4.29398262893399
+  position -0.21849389566447042 -1.2927718651124798 10.872802285889138
   follow "Pioneer 3-AT"
   followType "None"
 }
@@ -27,8 +27,8 @@ RectangleArena {
   wallHeight 0.3
 }
 DEF ROBOT Robot {
-  translation -1.85193 1.9166 -0.00209615
-  rotation 3.888769882769473e-05 -0.00024244499269127383 0.9999999698540858 -1.2054253071795866
+  translation -1.83303 1.94015 -0.00258546
+  rotation 0.0001429319985345 8.757759910205571e-06 -0.9999999897468727 0.933586
   children [
     DEF EXTENSION_SLOT Group {
       children [
@@ -208,7 +208,7 @@ DEF ROBOT Robot {
     }
     DEF BACK_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 3.8935747486270635
+        position 4.9293395304803695
         axis 0 1 0
         anchor -0.1331 0.197 0.11
       }
@@ -223,8 +223,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation -0.13316777116528916 0.1970000017861194 0.10993819570523068
-        rotation -0.6760046560968195 0.6759966739281318 -0.29333632876533344 2.5709296385622378
+        translation -0.133187721662377 0.1970000017861194 0.11002678827441993
+        rotation -0.7050230111219451 0.7050159894133159 0.07677895844636522 3.294843541496678
         children [
           DEF RIM_AND_TIRE_SHAPES Group {
             children [
@@ -401,7 +401,7 @@ DEF ROBOT Robot {
     }
     DEF BACK_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 4.0519462587384
+        position 5.139069767504577
         axis 0 1 0
         anchor -0.1331 -0.197 0.11
       }
@@ -416,8 +416,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation -0.13317699788539045 -0.19699999819027889 0.1099494016184182
-        rotation -0.6872130346640486 0.6872051334416507 -0.23555752919249323 2.6789123391402945
+        translation -0.1331806010097557 -0.19699999819027889 0.11004463572335788
+        rotation -0.6989568515092605 0.6989501466143355 0.15141998638244653 3.442141736552425
         children [
           USE RIM_AND_TIRE_SHAPES
           DEF RIGHT_CAP_AND_VALVE_SHAPES Group {
@@ -468,7 +468,7 @@ DEF ROBOT Robot {
     }
     DEF FRONT_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 44.66011924494575
+        position 45.695885728677176
         axis 0 1 0
         anchor 0.1331 0.197 0.11
       }
@@ -483,8 +483,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation 0.13317298786390966 0.1970000023086336 0.11013162098410062
-        rotation -0.396421914208601 0.3964206385517203 0.8280702526147373 4.52482919317221
+        translation 0.1332504414830896 0.1970000023086336 0.11000432109934194
+        rotation 0.07115468378532308 -0.0711505610432187 0.9949244235813319 4.707290414603394
         children [
           USE RIM_AND_TIRE_SHAPES
           USE LEFT_CAP_AND_VALVE_SHAPES
@@ -496,7 +496,7 @@ DEF ROBOT Robot {
     }
     DEF FRONT_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 55.27283908531227
+        position 56.35995869499546
         axis 0 1 0
         anchor 0.1331 -0.197 0.11
       }
@@ -511,8 +511,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation 0.13298780192096757 -0.1969985932887077 0.10993763015485658
-        rotation -0.7032399246424379 0.7032343007446108 0.1044754834644794 3.3497803181039654
+        translation 0.13299260824210313 -0.1969985932887077 0.11007032365787993
+        rotation -0.6103835827481636 0.6103805502419972 0.5048440014477664 4.076611936280273
         children [
           USE RIM_AND_TIRE_SHAPES
           USE RIGHT_CAP_AND_VALVE_SHAPES
