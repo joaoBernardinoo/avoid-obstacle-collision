@@ -231,10 +231,17 @@ def GPS(robot_node, lidar, target):
 def mapSoftEvidence(robot_node, lidar, camera, target):
 
     # TAREFA- Victor Sales
-    # Coleta de dados com a CNN
+    # Inferir a distancia e o angulo entre o robô e o alvo
+    # use a funcao GPS como ground truth
+
+    
+
     # lidar_data = lidar.getRangeImage() #[0.1,0.2, 3.0 ....]
     # camera_data = camera.getImageArray() # (shape camera_w, camera_h, 3)
+
+    # adicione essa linha quando a CNN estiver pronta
     # dist,angle = CNN(lidar_data,camera_data)
+
     # remover essa linha abaixo quando tiver o CNN
     dist, angle = GPS(robot_node, lidar, target)
     print("Angulo Bolinha Amarela", angle * 180 / np.pi)
