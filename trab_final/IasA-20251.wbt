@@ -9,8 +9,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.542562519354123 -0.5819362402657361 -0.605785543618768 4.29398262893399
-  position -0.21849389566447042 -1.2927718651124798 10.872802285889138
+  orientation 0.5383419195444988 -0.5526624547006863 -0.636201374429006 4.298725365975805
+  position -0.23272788574456893 -1.8349469070437612 10.816406671391182
   follow "Pioneer 3-AT"
   followType "None"
 }
@@ -27,8 +27,8 @@ RectangleArena {
   wallHeight 0.3
 }
 DEF ROBOT Robot {
-  translation -1.83303 1.94015 -0.00258546
-  rotation 0.0001429319985345 8.757759910205571e-06 -0.9999999897468727 0.933586
+  translation -1.819920381637032 1.8276582137447595 -0.0026351471378647517
+  rotation 0.0013947142923536658 0.0018227876187033858 -0.9999973661052012 1.0395451535544522
   children [
     DEF EXTENSION_SLOT Group {
       children [
@@ -105,7 +105,7 @@ DEF ROBOT Robot {
             mass 1
           }
           horizontalResolution 20
-          fieldOfView 1.9
+          fieldOfView 2.7
           verticalFieldOfView 0.056
           numberOfLayers 1
           maxRange 6
@@ -208,14 +208,13 @@ DEF ROBOT Robot {
     }
     DEF BACK_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 4.9293395304803695
+        position 4.9706207600447705
         axis 0 1 0
         anchor -0.1331 0.197 0.11
       }
       device [
         RotationalMotor {
           name "back left wheel"
-          maxVelocity 6.4
           maxTorque 20
         }
         PositionSensor {
@@ -223,8 +222,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation -0.133187721662377 0.1970000017861194 0.11002678827441993
-        rotation -0.7050230111219451 0.7050159894133159 0.07677895844636522 3.294843541496678
+        translation -0.13318654138915398 0.1970000017861194 0.11003038568182572
+        rotation -0.7041488468783671 0.704141884070896 0.09142542609665431 3.3239299573708028
         children [
           DEF RIM_AND_TIRE_SHAPES Group {
             children [
@@ -401,14 +400,13 @@ DEF ROBOT Robot {
     }
     DEF BACK_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 5.139069767504577
+        position 6.092362443761042
         axis 0 1 0
         anchor -0.1331 -0.197 0.11
       }
       device [
         RotationalMotor {
           name "back right wheel"
-          maxVelocity 6.4
           maxTorque 20
         }
         PositionSensor {
@@ -416,8 +414,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation -0.1331806010097557 -0.19699999819027889 0.11004463572335788
-        rotation -0.6989568515092605 0.6989501466143355 0.15141998638244653 3.442141736552425
+        translation -0.13311027543278697 -0.19699999819027889 0.11009156028644754
+        rotation -0.6107187278359688 0.610714135113299 0.5040346026248903 4.075321191825436
         children [
           USE RIM_AND_TIRE_SHAPES
           DEF RIGHT_CAP_AND_VALVE_SHAPES Group {
@@ -468,14 +466,13 @@ DEF ROBOT Robot {
     }
     DEF FRONT_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 45.695885728677176
+        position 46.15600100145932
         axis 0 1 0
         anchor 0.1331 0.197 0.11
       }
       device [
         RotationalMotor {
           name "front left wheel"
-          maxVelocity 6.4
           maxTorque 20
         }
         PositionSensor {
@@ -483,8 +480,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation 0.1332504414830896 0.1970000023086336 0.11000432109934194
-        rotation 0.07115468378532308 -0.0711505610432187 0.9949244235813319 4.707290414603394
+        translation 0.1332367145570836 0.1970000023086336 0.1099370679603454
+        rotation 0.2846284844933599 -0.2846224272172115 0.9154106727256333 4.624112094893581
         children [
           USE RIM_AND_TIRE_SHAPES
           USE LEFT_CAP_AND_VALVE_SHAPES
@@ -496,14 +493,13 @@ DEF ROBOT Robot {
     }
     DEF FRONT_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 56.35995869499546
+        position 57.18100213341826
         axis 0 1 0
         anchor 0.1331 -0.197 0.11
       }
       device [
         RotationalMotor {
           name "front right wheel"
-          maxVelocity 6.4
           maxTorque 20
         }
         PositionSensor {
@@ -511,8 +507,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation 0.13299260824210313 -0.1969985932887077 0.11007032365787993
-        rotation -0.6103835827481636 0.6103805502419972 0.5048440014477664 4.076611936280273
+        translation 0.133078283916419 -0.1969985932887077 0.11012651805497924
+        rotation -0.4120310268972218 0.4120310863839677 0.8126874040658364 4.506440816662667
         children [
           USE RIM_AND_TIRE_SHAPES
           USE RIGHT_CAP_AND_VALVE_SHAPES
@@ -786,11 +782,22 @@ DEF ROBOT Robot {
   recognitionColors [
     0.945098 0.811765 0.156863
   ]
-  controller "genetic"
+  controller "robot"
   controllerArgs [
     "train"
   ]
   supervisor TRUE
+  cpuConsumption 20
+}
+SolidBox {
+  translation 0.708464 -1.38034 0.43
+  rotation 0 0 1 -1.3089953071795861
+  size 0.5 0.5 0.9
+  appearance PBRAppearance {
+    baseColor 1 0 0
+    roughness 0.5
+    metalness 0
+  }
 }
 SolidBox {
   translation -1.57095 -1.4525 0.3
@@ -815,10 +822,10 @@ SolidBox {
   }
 }
 SolidBox {
-  translation -1.40982 0.487573 0.25
-  rotation 0 0 1 -0.261795307179586
+  translation -1.24925 0.460737 0.3
+  rotation 0 0 -1 0.261796
   name "box(1)"
-  size 0.6 1 0.7
+  size 0.6 0.8 0.8
   appearance PBRAppearance {
     baseColor 1 0 0
     roughness 0.5

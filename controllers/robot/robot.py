@@ -1,3 +1,4 @@
+#!/home/dino/Documents/ia/.venv/bin/python3
 from controller import Robot, Motor, Lidar, Camera, Supervisor  # type: ignore
 
 from Infer import bayesian, mapSoftEvidence

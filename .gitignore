@@ -1,4 +1,4 @@
 # Python virtual environments
 venv/
 .venv/
-controllers/genetic/ppo_navigation_tensorboard/
+controllers/genetic/ppo_navigation_tensorboard/logs/*

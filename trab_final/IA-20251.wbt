@@ -790,6 +790,16 @@ DEF ROBOT Robot {
   supervisor TRUE
 }
 SolidBox {
+  translation 0.708464 -1.38034 0.43
+  rotation 0 0 1 -1.3089953071795861
+  size 0.5 0.5 0.9
+  appearance PBRAppearance {
+    baseColor 1 0 0
+    roughness 0.5
+    metalness 0
+  }
+}
+SolidBox {
   translation -1.57095 -1.4525 0.3
   rotation 0 0 1 0.523602
   name "box(3)"

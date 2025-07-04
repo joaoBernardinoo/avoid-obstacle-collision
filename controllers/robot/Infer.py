@@ -58,14 +58,14 @@ if not os.path.exists(MODEL_PATH):
         [0.60, 0.15, 0.10, 0.15],  # ( sim, sim, esquerda )
         [0.50, 0.10, 0.20, 0.20],  # ( sim, sim, frente )
         [0.60, 0.10, 0.15, 0.15],  # ( sim, sim, direita )
-        [0.10, 0.55, 0.10, 0.25],  # ( sim, nao, esquerda )
-        [0.10, 0.35, 0.35, 0.20],  # ( sim, nao, frente )
-        [0.10, 0.10, 0.55, 0.25],  # ( sim, nao, direita )
+        [0.10, 0.80, 0.10, 0.00],  # ( sim, nao, direita )
+        [0.10, 0.45, 0.45, 0.00],  # ( sim, nao, frente )
+        [0.10, 0.10, 0.80, 0.00],  # ( sim, nao, esquerda )
         [0.70, 0.15, 0.15, 0.00],  # ( nao, sim, esquerda )
         [0.60, 0.20, 0.20, 0.00],  # ( nao, sim, frente )
         [0.10, 0.10, 0.80, 0.00],  # ( nao, sim, direita )
         [0.10, 0.50, 0.30, 0.10],  # ( nao, nao, esquerda )
-        [0.10, 0.40, 0.40, 0.10],  # ( nao, nao, frente )
+        [0.40, 0.25, 0.25, 0.10],  # ( nao, nao, frente )
         [0.10, 0.30, 0.50, 0.10]   # ( nao, nao, direita )
     ]
 
@@ -122,13 +122,34 @@ def CNN(lidar, camera) -> tuple[float, float]:
 # gets a image and return the prob of target visible
 
 
+def get_limits(color_bgr: List[int]):
+    """
+    Calcula os limites de cor HSV inferior e superior a partir de uma cor BGR de entrada.
+    Esta função foi adaptada da imagem que você forneceu.
+    """
+    # Criamos um array 3D para a conversão, como o cvtColor espera
+    c = np.uint8([[color_bgr]])
+    hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)
+
+    # Extrai o valor HSV base
+    hue = hsvC[0][0][0]
+
+    # Define os limites com base no valor de matiz (Hue)
+    # Subtrai 10 do matiz para o limite inferior e adiciona 10 para o superior.
+    # A saturação e o brilho são definidos para um intervalo amplo para capturar
+    # a cor sob diferentes condições de iluminação.
+    lower_limit = np.array([hue - 10, 100, 100], dtype=np.uint8)
+    upper_limit = np.array([hue + 10, 255, 255], dtype=np.uint8)
+
+    return lower_limit, upper_limit
+
+
 def probTargetVisible(image) -> float:
     # Converter para HSV
     hsv = cv2.cvtColor(np.array(image, dtype=np.uint8), cv2.COLOR_BGR2HSV)
 
     # Definir faixa de amarelo (ajuste conforme o ambiente!)
-    lower_yellow = np.array([62, 44, 14])
-    upper_yellow = np.array([242, 210, 30])
+    lower_yellow, upper_yellow = get_limits(color_bgr=[0, 255, 255])
 
     # Máscara para regiões amarelas
     mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
@@ -160,87 +181,91 @@ def getAngle(robot_node, target) -> float:
     dy = obs_pos[1] - rob_pos[1]
     angle = math.atan2(dy, dx) - rob_yaw
     angle = (angle + math.pi) % (2 * math.pi) - math.pi
-    return angle
+    return -angle
 
 
 REPULSE = "cos"
 VISION = True
+DIST_NEAR = 0.6
+ANGLE_FRONT = 0.0218  # 15 degrees in radians
 
 
 def GPS(robot_node, lidar, target):
-    # Posição do robô
     """
-    Calculate the minimum distance to the nearest obstacle and the angle to the target.
+    Calcula a distância e o ângulo entre o robô e o obstáculo mais próximo.
 
-    This function uses LIDAR data to determine the closest distance to any obstacle
-    and calculates the angle to a specific target, identified as 'objective', from
-    the robot's current position.
+    Parameters
+    ----------
+    robot_node : Supervisor
+        Nó do robô.
+    lidar : Lidar
+        Sensor de distância do robô.
+    target : Node
+        Nó do obstáculo.
 
-    Args:
-        robot_node: The node representing the robot in the simulator.
-        lidar: The LIDAR device used to scan the environment.
-
-    Returns:
-        A tuple containing:
-        - min_dist (float): The distance to the nearest obstacle.
-        - angle (float): The angle to the target, 'objective', in radians.
+    Returns
+    -------
+    dist : float
+        Distância do obstáculo mais próximo.
+    angle : float
+        Ângulo entre o robô e o obstáculo mais próximo.
     """
-
     lidar_data = lidar.getRangeImage()  # type: List[int]
     # Posição do obstáculo mais próximo
     min_dist = min(lidar_data)
-    angle = 0.0
-    angle = getAngle(robot_node, target)
+    min_index = lidar_data.index(min_dist)
 
-    return min_dist, -angle
+    angle = 0.0
+    if min_dist > DIST_NEAR:
+        angle = getAngle(robot_node, target)
+        return min_dist, angle
+    # min_dist é a distancia do ojbeto mais proximo, eu quero que
+    # objetos a esquerda estejam com distancia negativa e direita com distancia positiva
+    # se ele estiver no centro deve ser
+    if min_index < len(lidar_data) // 2:
+        min_dist = -min_dist
+
+    return min_dist, angle
 
 
 def mapSoftEvidence(robot_node, lidar, camera, target):
 
+    # TAREFA- Victor Sales
+    # Coleta de dados com a CNN
+    # lidar_data = lidar.getRangeImage() #[0.1,0.2, 3.0 ....]
+    # camera_data = camera.getImageArray() # (shape camera_w, camera_h, 3)
+    # dist,angle = CNN(lidar_data,camera_data)
+    # remover essa linha abaixo quando tiver o CNN
     dist, angle = GPS(robot_node, lidar, target)
     print("Angulo Bolinha Amarela", angle * 180 / np.pi)
     print("Distancia Objeto Mais Próximo", dist)
-    DIST_NEAR = 0.8
-    DIST_STOP = 0.05
-    ANGLE_FRONT = 0.0218  # 15 degrees in radians
 
     # Soft evidence (probabilidades)
-    p_obs_sim = 1 / (1 + np.exp((dist - DIST_NEAR) * 5))
+    p_obs_sim = 1 / (1 + np.exp((abs(dist) - DIST_NEAR) * 5))
     p_obs = [p_obs_sim, 1 - p_obs_sim]
 
-    # Deve-se encontrar a probabilidade de visibilidade do alvo
-    # com base na camera e no angulo
-
-    if DIST_NEAR > dist:
-        # multiply the angle proportional to the distance
-        # the angle is inverse proportional to the distance
-        min_index = lidar.getRangeImage().index(dist)
-        fov = lidar.getFov()
-        # Calculate the angle in radians corresponding to the index of the minimum distance
-        # Assuming lidar_data covers a field of view of 180 degrees (π radians)
-        fov2 = fov/2
-        angle = (min_index / lidar.getHorizontalResolution()) * fov - fov2
-        # normalize to [-fov2,fov2]
-        # increse the angle based on the distance
-        # the angle is inverse proportional to the distance
-        # because when a obstacle is closer whe should:
-        # - mirror the angle of the obstacle, because we should go in the opposite direction to avoid
-        # - increase the angle based on the distance, cause the closer the obstacle the more we should turn
-        if REPULSE == "cos":
-            b = 3.0
-            c = 2
-            # lidar
-            avoid_multiplier = np.cos(angle/c) ** 2
-            dist_multiplier = -math.log(DIST_NEAR / (dist + 0.01))
-            angle_multiplier = avoid_multiplier * dist_multiplier
-        elif REPULSE == "exp":
-            angle_multiplier = (1/np.exp((angle / fov2)**2)) * - \
-                math.log(DIST_NEAR / (dist + 0.01))
+    if abs(dist) < DIST_NEAR:
+        if dist < 0:  # obstáculo à esquerda
+            if angle < -ANGLE_FRONT:
+                p_dir = [0.2, 0.1, 0.7]
+            elif angle > ANGLE_FRONT:
+                p_dir = [0.3, 0.1, 0.6]
+            else:
+                p_dir = [0.0, 0.3, 0.7]
+        else:  # obstáculo à direita
+            if angle > ANGLE_FRONT:
+                p_dir = [0.7, 0.1, 0.2]
+            elif angle < -ANGLE_FRONT:
+                p_dir = [0.6, 0.1, 0.3]
+            else:
+                p_dir = [0.7, 0.3, 0.0]
+    else:
+        if angle < -ANGLE_FRONT:
+            p_dir = [0.8, 0.1, 0.1]
+        elif angle > ANGLE_FRONT:
+            p_dir = [0.1, 0.1, 0.8]
         else:
-            angle_multiplier = -math.log(DIST_NEAR / (dist + 0.01))
-
-        print("Angle multiplier", angle_multiplier)
-        angle *= angle_multiplier
+            p_dir = [0.1, 0.8, 0.1]
 
     if VISION:
         p_vis_sim = probTargetVisible(
@@ -249,15 +274,6 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
         # 45 degrees in radians
         p_vis_sim = 1.0 if abs(angle) < 0.7854 else 0.1
     p_vis = [p_vis_sim, 1 - p_vis_sim]
-
-    print("Angulo Mentiroso", angle * 180 / np.pi)
-
-    if angle < -ANGLE_FRONT:
-        p_dir = [0.8, 0.1, 0.1]
-    elif angle > ANGLE_FRONT:
-        p_dir = [0.1, 0.1, 0.8]
-    else:
-        p_dir = [0.1, 0.8, 0.1]
 
     # Virtual evidence: lista de fatores (um para cada variável)
     virtual_evidence = [
@@ -268,8 +284,6 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
         TabularCPD('Direction', 3, [[p_dir[0]], [p_dir[1]], [p_dir[2]]],
                    state_names={'Direction': ['esquerda', 'frente', 'direita']})
     ]
-
-    # debug
     for ev in virtual_evidence:
         print(ev)
 
