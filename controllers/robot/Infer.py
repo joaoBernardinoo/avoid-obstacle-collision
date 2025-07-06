@@ -5,6 +5,7 @@ from pgmpy.factors.discrete import TabularCPD
 from pgmpy.inference import VariableElimination
 import os
 import cv2
+from PIL import Image
 import math
 from typing import List
 
@@ -146,13 +147,21 @@ def get_limits(color_bgr: List[int]):
 
 def probTargetVisible(image) -> float:
     # Converter para HSV
-    hsv = cv2.cvtColor(np.array(image, dtype=np.uint8), cv2.COLOR_BGR2HSV)
+    image = np.array(image, dtype=np.uint8)
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
     # Definir faixa de amarelo (ajuste conforme o ambiente!)
     lower_yellow, upper_yellow = get_limits(color_bgr=[0, 255, 255])
 
     # Máscara para regiões amarelas
     mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
+    mask_ = Image.fromarray(mask)
+    bbox = mask_.getbbox()
+
+    if bbox is not None:
+        x1, y1, x2, y2 = bbox
+
+        frame = cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 5)
 
     # Calcular proporção
     yellow_ratio = np.sum(mask > 0) / mask.size
@@ -233,8 +242,6 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
     # TAREFA- Victor Sales
     # Inferir a distancia e o angulo entre o robô e o alvo
     # use a funcao GPS como ground truth
-
-    
 
     # lidar_data = lidar.getRangeImage() #[0.1,0.2, 3.0 ....]
     # camera_data = camera.getImageArray() # (shape camera_w, camera_h, 3)
