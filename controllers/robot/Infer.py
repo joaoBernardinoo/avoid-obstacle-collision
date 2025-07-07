@@ -13,6 +13,7 @@ logging.getLogger("pgmpy").setLevel(logging.ERROR)
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'bayes_model')
 
+DISPLAY = None
 # Forçar a recriação do modelo com as novas probabilidades
 if os.path.exists(MODEL_PATH):
     # model = DiscreteBayesianNetwork.load(MODEL_PATH + ".bif")
@@ -56,15 +57,15 @@ if not os.path.exists(MODEL_PATH):
     )
     values = [
         # seguir, v_esq, v_dir, parar
-        [0.60, 0.15, 0.10, 0.15],  # ( sim, sim, esquerda )
-        [0.50, 0.10, 0.20, 0.20],  # ( sim, sim, frente )
-        [0.60, 0.10, 0.15, 0.15],  # ( sim, sim, direita )
-        [0.10, 0.80, 0.10, 0.00],  # ( sim, nao, direita )
+        [0.10, 0.85, 0.00, 0.05],  # ( sim, sim, esquerda )
+        [0.10, 0.00, 0.00, 0.90],  # ( sim, sim, frente )
+        [0.10, 0.00, 0.85, 0.05],  # ( sim, sim, direita )
+        [0.10, 0.80, 0.10, 0.00],  # ( sim, nao, esquerda )
         [0.10, 0.45, 0.45, 0.00],  # ( sim, nao, frente )
-        [0.10, 0.10, 0.80, 0.00],  # ( sim, nao, esquerda )
-        [0.70, 0.15, 0.15, 0.00],  # ( nao, sim, esquerda )
-        [0.60, 0.20, 0.20, 0.00],  # ( nao, sim, frente )
-        [0.10, 0.10, 0.80, 0.00],  # ( nao, sim, direita )
+        [0.10, 0.10, 0.80, 0.00],  # ( sim, nao, direita )
+        [0.90, 0.00, 0.00, 0.10],  # ( nao, sim, esquerda )
+        [0.90, 0.00, 0.00, 0.10],  # ( nao, sim, frente )
+        [0.90, 0.00, 0.00, 0.10],  # ( nao, sim, direita )
         [0.10, 0.50, 0.30, 0.10],  # ( nao, nao, esquerda )
         [0.40, 0.25, 0.25, 0.10],  # ( nao, nao, frente )
         [0.10, 0.30, 0.50, 0.10]   # ( nao, nao, direita )
@@ -145,39 +146,49 @@ def get_limits(color_bgr: List[int]):
     return lower_limit, upper_limit
 
 
+YELLOW = [0, 255, 255]
+
+LOWER_LIMIT, UPPER_LIMIT = get_limits(color_bgr=YELLOW)
+
+
 def probTargetVisible(image) -> float:
     # Converter para HSV
-    image = np.array(image, dtype=np.uint8)
-    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    # Definir faixa de amarelo (ajuste conforme o ambiente!)
-    lower_yellow, upper_yellow = get_limits(color_bgr=[0, 255, 255])
+    image = np.frombuffer(
+        image, np.uint8).reshape((40, 200, 4))
+    image = image.copy()
 
-    # Máscara para regiões amarelas
-    mask = cv2.inRange(hsv, lower_yellow, upper_yellow)
-    mask_ = Image.fromarray(mask)
-    bbox = mask_.getbbox()
+    hsvImage = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-    if bbox is not None:
-        x1, y1, x2, y2 = bbox
+    mask = cv2.inRange(hsvImage, LOWER_LIMIT, UPPER_LIMIT)
 
-        frame = cv2.rectangle(image, (x1, y1), (x2, y2), (0, 255, 0), 5)
+    # Apply Gaussian blur to reduce noise
+    # mask = cv2.GaussianBlur(mask, (5, 5), 0)
 
+    # Apply morphological operations to further reduce noise
+    # kernel = np.ones((5, 5), np.uint8)
+    # mask = cv2.erode(mask, kernel, iterations=2)
+    # mask = cv2.dilate(mask, kernel, iterations=2)
+    # mask_ = Image.fromarray(mask)
+    # bbox = mask_.getbbox()
+
+    # if bbox is not None:
+    #     x1, y1, x2, y2 = bbox
+    #     # se
+
+    #     image = cv2.rectangle(image, (x1, y1), (x2, y2),
+    #                           (0, 255, 0), 1, cv2.LINE_AA)
+    # resize the image with factor of 3
+    mask = cv2.resize(mask, None, fx=3, fy=3)
+    cv2.imshow("Webots Camera", mask)
     # Calcular proporção
     yellow_ratio = np.sum(mask > 0) / mask.size
     yellow_ratio = float(yellow_ratio)
 
     print(f"Proporção de pixels amarelos: {yellow_ratio:.2%}")
-
-    # Definir probabilidade com uma transição suave
-    # Usar uma função linear para mapear a proporção de amarelo para uma probabilidade entre 0.1 e 1.0
-    if yellow_ratio <= 0.05:
-        return 0.0
-    elif yellow_ratio >= 0.40:
-        return 1.0
-    else:
-        # Escala linear entre 0.05 e 0.20
-        return 0.1 + (yellow_ratio - 0.05) * (0.9 / 0.15)
+    # Definir probabilidade com uma transição suave de 0 a 1
+    prob = 1 - np.power(2, -40 * yellow_ratio)
+    return prob
 
 
 def getAngle(robot_node, target) -> float:
@@ -225,8 +236,8 @@ def GPS(robot_node, lidar, target):
     min_index = lidar_data.index(min_dist)
 
     angle = 0.0
+    angle = getAngle(robot_node, target)
     if min_dist > DIST_NEAR:
-        angle = getAngle(robot_node, target)
         return min_dist, angle
     # min_dist é a distancia do ojbeto mais proximo, eu quero que
     # objetos a esquerda estejam com distancia negativa e direita com distancia positiva
@@ -244,13 +255,22 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
     # use a funcao GPS como ground truth
 
     # lidar_data = lidar.getRangeImage() #[0.1,0.2, 3.0 ....]
-    # camera_data = camera.getImageArray() # (shape camera_w, camera_h, 3)
+    # camera_data = camera.getImage() # (shape camera_w, camera_h, 3)
 
     # adicione essa linha quando a CNN estiver pronta
     # dist,angle = CNN(lidar_data,camera_data)
 
     # remover essa linha abaixo quando tiver o CNN
     dist, angle = GPS(robot_node, lidar, target)
+
+    # criar um banco de dados para a CNN, salve em um dataframe em um arquivo csv
+    # as seguintes informacoes de treino
+    # X = camera_image, lidar_data
+    # Y = dist, angle
+
+    
+
+
     print("Angulo Bolinha Amarela", angle * 180 / np.pi)
     print("Distancia Objeto Mais Próximo", dist)
 
@@ -258,36 +278,39 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
     p_obs_sim = 1 / (1 + np.exp((abs(dist) - DIST_NEAR) * 5))
     p_obs = [p_obs_sim, 1 - p_obs_sim]
 
-    if abs(dist) < DIST_NEAR:
-        if dist < 0:  # obstáculo à esquerda
-            if angle < -ANGLE_FRONT:
-                p_dir = [0.2, 0.1, 0.7]
-            elif angle > ANGLE_FRONT:
-                p_dir = [0.3, 0.1, 0.6]
-            else:
-                p_dir = [0.0, 0.3, 0.7]
-        else:  # obstáculo à direita
-            if angle > ANGLE_FRONT:
-                p_dir = [0.7, 0.1, 0.2]
-            elif angle < -ANGLE_FRONT:
-                p_dir = [0.6, 0.1, 0.3]
-            else:
-                p_dir = [0.7, 0.3, 0.0]
-    else:
-        if angle < -ANGLE_FRONT:
-            p_dir = [0.8, 0.1, 0.1]
-        elif angle > ANGLE_FRONT:
-            p_dir = [0.1, 0.1, 0.8]
-        else:
-            p_dir = [0.1, 0.8, 0.1]
-
     if VISION:
         p_vis_sim = probTargetVisible(
-            camera.getImageArray())
+            camera.getImage())
     else:
         # 45 degrees in radians
         p_vis_sim = 1.0 if abs(angle) < 0.7854 else 0.1
     p_vis = [p_vis_sim, 1 - p_vis_sim]
+
+    # --- Probabilidade da Direção (p_dir) ---
+    # Esta seção mapeia a probabilidade da direção com base no ângulo para o alvo
+    # e na probabilidade de detecção de obstáculo (p_obs_sim),
+    # tornando a transição de comportamento mais suave.
+
+    # 1. Definir a probabilidade de direção baseada apenas no ângulo para o alvo.
+    #    (Comportamento quando não há obstáculos)
+    if angle < -ANGLE_FRONT:  # Alvo à esquerda
+        p_dir_target = np.array([0.8, 0.1, 0.1])
+    elif angle > ANGLE_FRONT:  # Alvo à direita
+        p_dir_target = np.array([0.1, 0.1, 0.8])
+    else:  # Alvo em frente
+        p_dir_target = np.array([0.1, 0.8, 0.1])
+
+    # 2. Definir a probabilidade de direção para desviar de um obstáculo.
+    #    (Comportamento quando um obstáculo está muito próximo)
+    if dist < 0:  # Obstáculo detectado à esquerda
+        p_dir_avoidance = np.array([0.1, 0.2, 0.7])  # Desviar para a direita
+    else:  # Obstáculo detectado à direita ou em frente
+        p_dir_avoidance = np.array([0.7, 0.2, 0.1])  # Desviar para a esquerda
+
+    # 3. Misturar as duas probabilidades usando p_obs_sim como peso.
+    #    Se p_obs_sim é alto, o robô prioriza desviar (p_dir_avoidance).
+    #    Se p_obs_sim é baixo, o robô prioriza seguir o alvo (p_dir_target).
+    p_dir = p_dir_target * (1 - p_obs_sim) + p_dir_avoidance * p_obs_sim
 
     # Virtual evidence: lista de fatores (um para cada variável)
     virtual_evidence = [

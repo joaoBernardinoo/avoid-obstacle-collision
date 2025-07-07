@@ -1,4 +1,3 @@
-import math
 # Definindo as funções que as ações devem chamar
 MAX_SPEED = 6.28  # maximum speed of the robot's motors
 TURN_RATE_FOWARD = 0.5

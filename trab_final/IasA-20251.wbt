@@ -9,8 +9,8 @@ EXTERNPROTO "https://raw.githubusercontent.com/cyberbotics/webots/R2025a/project
 WorldInfo {
 }
 Viewpoint {
-  orientation 0.529741902520418 -0.5696112076711259 -0.6284238926150799 4.330075828492817
-  position -0.23272788574456893 -1.8349469070437612 10.816406671391182
+  orientation -0.5773502691896258 0.5773502691896258 0.5773502691896258 2.0944
+  position 0.0012244546750252564 1.5870122766532507e-07 8.307552833071464
   follow "Pioneer 3-AT"
   followType "None"
 }
@@ -27,13 +27,11 @@ RectangleArena {
   wallHeight 0.3
 }
 DEF ROBOT Robot {
-  translation -1.819920381637032 1.8276582137447595 -0.0026351471378647517
-  rotation 0.0013947142923536658 0.0018227876187033858 -0.9999973661052012 1.0395451535544522
+  translation -1.89737 1.92596 -0.081334
+  rotation -0.011571497788369405 -0.016505796845289522 -0.9997968089114087 0.869511
   children [
     DEF EXTENSION_SLOT Group {
       children [
-        Display {
-        }
         JetBotRaspberryPiCamera {
           translation 0.23 0 0.18
           fieldOfView 1.67
@@ -210,7 +208,7 @@ DEF ROBOT Robot {
     }
     DEF BACK_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 4.9706207600447705
+        position 172.90491015078777
         axis 0 1 0
         anchor -0.1331 0.197 0.11
       }
@@ -224,8 +222,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation -0.13318654138915406 0.1970000017861194 0.11003038568182574
-        rotation -0.7041488468783664 0.7041418840708968 0.09142542609665336 3.323929957370801
+        translation -0.13311792960361626 0.1970000017861194 0.10991004872979833
+        rotation 0.5986402544908412 -0.5986322580975225 0.5322304625518931 4.119783854767421
         children [
           DEF RIM_AND_TIRE_SHAPES Group {
             children [
@@ -402,7 +400,7 @@ DEF ROBOT Robot {
     }
     DEF BACK_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 6.092362443761042
+        position 134.94773667524453
         axis 0 1 0
         anchor -0.1331 -0.197 0.11
       }
@@ -416,8 +414,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation -0.13311027543278692 -0.19699999819027889 0.11009156028644758
-        rotation -0.610718727835964 0.6107141351133059 0.504034602624888 4.075321191825423
+        translation -0.13309432045279387 -0.19699999819027889 0.10990804015377974
+        rotation 0.5482997636571871 -0.5482919494199388 0.6314612477221039 4.268050234280243
         children [
           USE RIM_AND_TIRE_SHAPES
           DEF RIGHT_CAP_AND_VALVE_SHAPES Group {
@@ -468,7 +466,7 @@ DEF ROBOT Robot {
     }
     DEF FRONT_LEFT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 46.15600100145932
+        position 214.10144089918282
         axis 0 1 0
         anchor 0.1331 0.197 0.11
       }
@@ -482,8 +480,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation 0.13323671455708355 0.1970000023086336 0.10993706796034544
-        rotation 0.2846284844933577 -0.28462242721721187 0.9154106727256337 4.6241120948935786
+        translation 0.13314471161339467 0.1970000023086336 0.11014370867531671
+        rotation 0.4625306103582546 -0.462528407717383 -0.7563946764329074 1.8464422866023822
         children [
           USE RIM_AND_TIRE_SHAPES
           USE LEFT_CAP_AND_VALVE_SHAPES
@@ -495,7 +493,7 @@ DEF ROBOT Robot {
     }
     DEF FRONT_RIGHT_WHEEL HingeJoint {
       jointParameters HingeJointParameters {
-        position 57.18100213341826
+        position 186.0363849617366
         axis 0 1 0
         anchor 0.1331 -0.197 0.11
       }
@@ -509,8 +507,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation 0.1330782839164192 -0.1969985932887077 0.1101265180549796
-        rotation -0.4120310268972216 0.41203108638396035 0.8126874040658404 4.5064408166626855
+        translation 0.13311535496741841 -0.1969985932887077 0.10987255341708195
+        rotation 0.6701807317422178 -0.6701735040212244 0.318943978324375 3.7590825130740484
         children [
           USE RIM_AND_TIRE_SHAPES
           USE RIGHT_CAP_AND_VALVE_SHAPES
