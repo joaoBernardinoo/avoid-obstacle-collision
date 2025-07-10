@@ -10,8 +10,6 @@ from .cnn_model import CNNNavigationModel
 # Assumindo a sua premissa de que 3.14 é o correto para a distância.
 DIST_SCALE = 3.14
 ANGLE_SCALE = np.pi
-# CORREÇÃO: Usar um valor máximo FIXO para o LiDAR, determinado a partir do dataset de treino.
-# Substitua 10.0 pelo valor máximo real do seu dataset de treino.
 LIDAR_MAX_VAL = 3.14
 
 # --- Caminhos dos modelos ---
