@@ -11,9 +11,8 @@ from .cnn_model import CNNNavigationModel
 # This assumes the script is run from a location where this relative path is valid.
 
 
-
 SCRIPT_DIR = Path(__file__).parent if '__file__' in locals() else Path.cwd()
-MODEL_PATH = SCRIPT_DIR.parent / 'cnn' / 'cnn_navigation_model.pth'
+MODEL_PATH = SCRIPT_DIR.parent / 'cnn' / 'final_cnn_model.pth'
 ONLINE_MODEL_SAVE_PATH = SCRIPT_DIR / 'checkpoints' / 'online_cnn_model.pth'
 
 # Ensure the checkpoints directory exists
@@ -28,7 +27,11 @@ def load_model():
     # Set lidar data shape to match the pre-trained model's expected input size
     model = CNNNavigationModel(lidar_shape_in=20).to(device)
 
-    if MODEL_PATH.exists():
+    if ONLINE_MODEL_SAVE_PATH.exists():
+        model.load_state_dict(torch.load(
+            ONLINE_MODEL_SAVE_PATH, map_location=device))
+        print(f"Loaded online trained model from {ONLINE_MODEL_SAVE_PATH}")
+    elif MODEL_PATH.exists():
         model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
         print(f"Loaded pre-trained model from {MODEL_PATH}")
     else:

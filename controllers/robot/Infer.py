@@ -8,7 +8,8 @@ import cv2
 import math
 import random
 import Bayes
-from typing import List
+from typing import List, cast
+import h5py
 if True:
     sys.path.append(str(Path(__file__).parent.parent))
     from cnn.NeuralNetwork import CNN, CNN_online
@@ -18,8 +19,11 @@ logging.getLogger("pgmpy").setLevel(logging.ERROR)
 STEP_COUNT = 0
 if sys.platform == 'linux':
     SAVE_PATH = Path('/home/dino/SSD/cnn_dataset')
+
 else:
     SAVE_PATH = Path(os.path.dirname(__file__), 'cnn_dataset')
+
+HDF5_SAVE_PATH = SAVE_PATH.parent / 'cnn_dataset.h5'
 
 
 def get_limits(color_bgr: List[int]):
@@ -114,10 +118,67 @@ def collectData(dist, angle, lidar_data, camera_data):
     return 0
 
 
+def collectDataHDF5(dist, angle, lidar_data, camera_data):
+    """
+    Collects and appends sensor data to a single HDF5 file.
+
+    The function saves the camera image, LIDAR data, and ground truth labels
+    (distance and angle) into datasets within an HDF5 file. If the file or
+    datasets don't exist, they are created. Subsequent calls append new data
+    to the existing datasets, making them grow over time.
+    """
+    global STEP_COUNT
+
+    # 1. Convert camera image from bytes to a numpy array
+    image_np = np.frombuffer(
+        camera_data, np.uint8
+    ).reshape((40, 200, 4))
+    lidar_np = np.array(lidar_data)
+
+    # 2. Open the HDF5 file in append mode
+    with h5py.File(HDF5_SAVE_PATH, 'a') as hf:
+        # 3. Check if datasets exist. If not, create them.
+        if 'camera_image' not in hf:
+            # Create datasets that can be resized
+            hf.create_dataset('camera_image', data=[image_np],
+                              compression="gzip", chunks=True,
+                              maxshape=(None, 40, 200, 4))
+            hf.create_dataset('lidar_data', data=[lidar_np],
+                              compression="gzip", chunks=True,
+                              maxshape=(None, len(lidar_np)))
+            hf.create_dataset('dist', data=[dist],
+                              compression="gzip", chunks=True,
+                              maxshape=(None,))
+            hf.create_dataset('angle', data=[angle],
+                              compression="gzip", chunks=True,
+                              maxshape=(None,))
+        else:
+            # 4. If datasets exist, resize and append new data
+            # We use cast to inform Pylance about the correct type
+            camera_dset = cast(h5py.Dataset, hf['camera_image'])
+            camera_dset.resize((camera_dset.shape[0] + 1), axis=0)
+            camera_dset[-1] = image_np
+
+            lidar_dset = cast(h5py.Dataset, hf['lidar_data'])
+            lidar_dset.resize((lidar_dset.shape[0] + 1), axis=0)
+            lidar_dset[-1] = lidar_np
+
+            dist_dset = cast(h5py.Dataset, hf['dist'])
+            dist_dset.resize((dist_dset.shape[0] + 1), axis=0)
+            dist_dset[-1] = dist
+
+            angle_dset = cast(h5py.Dataset, hf['angle'])
+            angle_dset.resize((angle_dset.shape[0] + 1), axis=0)
+            angle_dset[-1] = angle
+
+    STEP_COUNT += 1
+    return 0
+
+
 REPULSE = "cos"
 VISION = True
 DIST_NEAR = 0.6
-MODE = "train"
+MODE = "nav"
 ANGLE_FRONT = 0.0218  # 15 degrees in radians
 
 
@@ -168,26 +229,27 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
     lidar_data = lidar.getRangeImage()  # type: List[int]
     camera_data = camera.getImage()    # Retorna uma string de bytes
 
-    if MODE == "collect":
-        dist, angle = GPS(robot_node, lidar_data, target)
-        print("GPS - dist", dist)
-        print("GPS - angle", angle * 180 / np.pi)
+    if MODE == "nav":
+        camera_data_np = np.frombuffer(
+            camera_data, np.uint8
+        ).reshape((40, 200, 4))
+        dist, angle = CNN(lidar_data, camera_data_np)
 
-        # add random noise
-        # dist += random.uniform(-0.05, 0.05)
-        # angle += random.uniform(-ANGLE_FRONT, ANGLE_FRONT)
+        dist = np.multiply(dist, 3.14)
+        print("CNN - dist", dist)
+
+        print("CNN - angle", angle * 180)
+        angle = np.multiply(angle, np.pi)
+
     elif MODE == "online":
         camera_data_np = np.frombuffer(
             camera_data, np.uint8
         ).reshape((40, 200, 4))
         dist, angle = CNN(lidar_data, camera_data_np)
-        dist = dist * np.pi
-        angle = angle * np.pi
+        dist = np.multiply(dist, 3.14)
+        angle = np.multiply(angle, np.pi)
 
         dist2, angle2 = GPS(robot_node, lidar_data, target)
-        if abs(dist2) <= 0.21:
-            reset = True
-
         # Check if the difference between CNN output and ground truth is greater than 30%
         dist_diff = abs(dist - dist2)
         angle_diff = abs(angle - angle2)
@@ -195,18 +257,25 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
         dist_threshold = 0.3 * abs(dist2) if dist2 != 0 else 0.30
         angle_threshold = 0.3 * abs(angle2) if angle2 != 0 else 0.30
 
+        print("CNN - dist", dist)
+        print("Ground Truth", dist2)
+        print("CNN - angle", angle * 180 / np.pi)
+        print("Ground Truth", angle2 * 180 / np.pi)
+        if abs(dist2) <= 0.21:
+            reset = True
+
         if dist_diff > dist_threshold or angle_diff > angle_threshold:
             print(
                 "CNN output differs significantly from ground truth. Calling CNN_online...")
             CNN_online(lidar_data, camera_data_np, dist2, angle2)
+            dist = dist2
+            angle = angle2
     elif MODE == "train":
         dist_gps, angle_gps = GPS(robot_node, lidar_data, target)
         if abs(dist_gps) <= 0.21:
             reset = True
 
-
-        ## random choose True or False
-        choice = random.choice([True, False])
+        choice = random.random() < 0.40
         if choice:
             camera_data_np = np.frombuffer(
                 camera_data, np.uint8
@@ -227,17 +296,8 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
             dist = dist_gps
             angle = angle_gps
 
-        collectData(dist, angle, lidar_data, camera_data)
-
-        
-
-
-    # dist = dist2
-    # angle = angle2
-
-    # Soft evidence (probabilidades)
-    p_obs_sim = 1 / (1 + np.exp((abs(dist) - DIST_NEAR) * 5))
-    p_obs = [p_obs_sim, 1 - p_obs_sim]
+        # collectData(dist_gps, angle_gps, lidar_data, camera_data)
+        collectDataHDF5(dist_gps, angle_gps, lidar_data, camera_data)
 
     if VISION:
         p_vis_sim = probTargetVisible(
@@ -246,6 +306,10 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
         # 45 degrees in radians
         p_vis_sim = 1.0 if abs(angle) < 0.7854 else 0.1
     p_vis = [p_vis_sim, 1 - p_vis_sim]
+
+    # Soft evidence (probabilidades)
+    p_obs_sim = 1 / (1 + np.exp((abs(dist) - DIST_NEAR) * 5))
+    p_obs = [p_obs_sim, 1 - p_obs_sim]
 
     # --- Probabilidade da Direção (p_dir) ---
     # Esta seção mapeia a probabilidade da direção com base no ângulo para o alvo
