@@ -12,7 +12,7 @@ DIST_SCALE = 3.14
 ANGLE_SCALE = np.pi
 # CORREÇÃO: Usar um valor máximo FIXO para o LiDAR, determinado a partir do dataset de treino.
 # Substitua 10.0 pelo valor máximo real do seu dataset de treino.
-LIDAR_MAX_VAL = 10.0
+LIDAR_MAX_VAL = 3.14
 
 # --- Caminhos dos modelos ---
 SCRIPT_DIR = Path(__file__).parent if '__file__' in locals() else Path.cwd()
