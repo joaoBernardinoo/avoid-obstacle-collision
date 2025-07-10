@@ -35,7 +35,6 @@ lidar.enablePointCloud()
 camera: Camera = robot.getDevice('camera')  # type: ignore
 camera.enable(timestep)
 
-# Import OpenCV for image display
 
 # Supervisor para acessar posição do robô e obstáculos
 robot_node = robot.getSelf()
@@ -45,20 +44,22 @@ cv2.namedWindow("Webots Camera")
 cv2.moveWindow("Webots Camera", 0, 2)
 
 TARGET = robot.getFromDef("TARGET")
+step_count = 0
 while robot.step(timestep) != -1:
-
-    soft_evidence = mapSoftEvidence(robot_node, lidar, camera, TARGET)
+    # only infer the action in steps multiples of 5
+    soft_evidence, reset = mapSoftEvidence(robot_node, lidar, camera, TARGET)
     action, p_sucess = bayesian(soft_evidence=soft_evidence)
-
     if p_sucess >= 0.9:
         break
+    if reset or action == "parar":
+        # reset the robot to the start position
+        # translation -1.89737 1.92596 -0.081334
+        # rotation -0.011571497788369405 -0.016505796845289522 -0.9997968089114087 0.869511
+        robot_node.getField('translation').setSFVec3f(
+            [-1.89737, 1.92596, -0.081334])
+        robot_node.getField('rotation').setSFRotation(
+            [-0.011571497788369405, -0.016505796845289522, -0.9997968089114087, 0.869511])
 
-    image_data = camera.getImage()
-    width = camera.getWidth()
-    height = camera.getHeight()
-
-    # 4. Espera por uma tecla ser pressionada (necessário para o cv2.imshow funcionar)
-    #    O valor '1' significa que ele espera por 1 milissegundo.
     if cv2.waitKey(1) == ord('q'):
         break
 
