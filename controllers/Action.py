@@ -1,8 +1,8 @@
 # Definindo as funções que as ações devem chamar
 MAX_SPEED = 6.28  # maximum speed of the robot's motors
-TURN_RATE_FOWARD = 0.5
+TURN_RATE_FOWARD = 0.6
 TURN_RATE_BACKWARD = 0.1
-SPEED = 0.6
+SPEED = 0.9
 SMOOTH = "exp"
 velocity = [0.0, 0.0, 0.0, 0.0]
 
@@ -48,7 +48,7 @@ def updateWheels(wheels, velocity):
         if SMOOTH == "exp":
             current_vel = wheels[i].getVelocity()
             target_vel = velocity[i]
-            smoothing = 0.2
+            smoothing = 0.3
             # exponential smoothing
             new_vel = current_vel * (1 - smoothing) + \
                 target_vel * (1 - (1 - smoothing) ** 2)
