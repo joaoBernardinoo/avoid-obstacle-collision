@@ -125,7 +125,8 @@ def plot_history(history):
 
 
 if __name__ == "__main__":
-    (X_cam, X_lidar), y = load_dataset(DATASET_PATH)
+    # Altere o 'dataset_type' para 'npz' se quiser carregar o dataset antigo
+    (X_cam, X_lidar), y = load_model(DATASET_PATH, dataset_type='hdf5')
 
     if X_cam is None or X_cam.shape[0] == 0:
         print("Exiting: No data loaded.")
