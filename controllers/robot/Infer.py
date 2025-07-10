@@ -1,127 +1,25 @@
 import numpy as np
 import logging
-from pgmpy.models import DiscreteBayesianNetwork
+import sys
+from pathlib import Path
 from pgmpy.factors.discrete import TabularCPD
-from pgmpy.inference import VariableElimination
 import os
 import cv2
-from PIL import Image
 import math
+import random
+import Bayes
 from typing import List
+if True:
+    sys.path.append(str(Path(__file__).parent.parent))
+    from cnn.NeuralNetwork import CNN, CNN_online
 
 logging.getLogger("pgmpy").setLevel(logging.ERROR)
 
-MODEL_PATH = os.path.join(os.path.dirname(__file__), 'bayes_model')
-
-DISPLAY = None
-# Forçar a recriação do modelo com as novas probabilidades
-if os.path.exists(MODEL_PATH):
-    # model = DiscreteBayesianNetwork.load(MODEL_PATH + ".bif")
-    os.remove(MODEL_PATH)
-    print("[INFO] Modelo antigo removido, criando novo modelo")
-
-if not os.path.exists(MODEL_PATH):
-    # 1. Definir a estrutura da Rede Bayesiana (nós e arestas/dependências)
-    # A estrutura reflete as dependências causais que definimos antes.
-    model = DiscreteBayesianNetwork([
-        ('ObstacleDetected', 'Action'),
-        ('TargetVisible', 'Action'),
-        ('Direction', 'Action'),
-        # O sucesso em chegar ao destino depende da sequência de ações
-        ('Action', 'Success')
-    ])
-
-    # CPT para a Ação. Depende de ObstacleDetected, TargetVisible e Direction.
-    # 2. Definir as Tabelas de Probabilidade Condicional (CPTs)
-    # --- CPTs para os Nós Raiz (A CORREÇÃO ESTÁ AQUI) ---
-    # Usamos um valor padrão uniforme. Eles serão sobrescritos pela evidência.
-    cpt_O = TabularCPD(
-        variable='ObstacleDetected',
-        variable_card=2,
-        values=[[0.5], [0.5]],
-        state_names={'ObstacleDetected': ['sim', 'nao']}
-    )
-
-    cpt_V = TabularCPD(
-        variable='TargetVisible',
-        variable_card=2,
-        values=[[0.5], [0.5]],
-        state_names={'TargetVisible': ['sim', 'nao']}
-    )
-
-    cpt_D = TabularCPD(
-        variable='Direction',
-        variable_card=3,
-        values=[[0.33], [0.34], [0.33]],
-        state_names={'Direction': ['esquerda', 'frente', 'direita']}
-    )
-    values = [
-        # seguir, v_esq, v_dir, parar
-        [0.10, 0.85, 0.00, 0.05],  # ( sim, sim, esquerda )
-        [0.10, 0.00, 0.00, 0.90],  # ( sim, sim, frente )
-        [0.10, 0.00, 0.85, 0.05],  # ( sim, sim, direita )
-        [0.10, 0.80, 0.10, 0.00],  # ( sim, nao, esquerda )
-        [0.10, 0.45, 0.45, 0.00],  # ( sim, nao, frente )
-        [0.10, 0.10, 0.80, 0.00],  # ( sim, nao, direita )
-        [0.90, 0.00, 0.00, 0.10],  # ( nao, sim, esquerda )
-        [0.90, 0.00, 0.00, 0.10],  # ( nao, sim, frente )
-        [0.90, 0.00, 0.00, 0.10],  # ( nao, sim, direita )
-        [0.10, 0.50, 0.30, 0.10],  # ( nao, nao, esquerda )
-        [0.40, 0.25, 0.25, 0.10],  # ( nao, nao, frente )
-        [0.10, 0.30, 0.50, 0.10]   # ( nao, nao, direita )
-    ]
-
-    # A ordem das evidências em 'evidence' é crucial e deve corresponder ao shape do array 'values'.
-    cpt_A = TabularCPD(
-        variable='Action',
-        variable_card=4,  # 4 estados: seguir, v_esq, v_dir, parar
-        values=np.array(values).T,
-        evidence=['ObstacleDetected', 'TargetVisible', 'Direction'],
-        evidence_card=[2, 2, 3],  # O(2), V(2), D(3)
-        state_names={
-            'Action': ['seguir', 'v_esq', 'v_dir', 'parar'],
-            'ObstacleDetected': ['sim', 'nao'],
-            'TargetVisible': ['sim', 'nao'],
-            'Direction': ['esquerda', 'frente', 'direita']
-        }
-    )
-
-    cpt_S = TabularCPD(
-        variable='Success',
-        variable_card=2,  # 2 estados: sim, nao
-        values=[
-            [0.90,   0.60,   0.60,  0.99],  # Probabilidade de sucesso 'sim'
-            [0.10,   0.40,   0.40,  0.01]  # Probabilidade de sucesso 'nao'
-        ],
-        evidence=['Action'],
-        evidence_card=[4],
-        state_names={
-            'Success': ['sim', 'nao'],
-            'Action': ['seguir', 'v_esq', 'v_dir', 'parar']
-        }
-    )
-
-    # Adicionar as CPTs ao modelo
-    model.add_cpds(cpt_A, cpt_S, cpt_D, cpt_O, cpt_V)
-    # Verificar se o modelo e as CPTs são consistentes
-
-    model.save(MODEL_PATH+".bif")
-    model.save(MODEL_PATH, filetype='xmlbif')
-    if not model.check_model():
-        raise ValueError("O modelo Bayesiano não é válido.")
-    print("[INFO] Modelo Bayesiano salvo em bayes_model")
-
-
-# Criar um objeto de inferência
-inference = VariableElimination(model)
-
-
-# make cnn return the distance to objetct and ang to target
-def CNN(lidar, camera) -> tuple[float, float]:
-
-    return 5.0, 0.0  # Simula uma distância de 5 metros e ângulo de 0 radianos
-
-# gets a image and return the prob of target visible
+STEP_COUNT = 0
+if sys.platform == 'linux':
+    SAVE_PATH = Path('/home/dino/SSD/cnn_dataset')
+else:
+    SAVE_PATH = Path(os.path.dirname(__file__), 'cnn_dataset')
 
 
 def get_limits(color_bgr: List[int]):
@@ -130,8 +28,8 @@ def get_limits(color_bgr: List[int]):
     Esta função foi adaptada da imagem que você forneceu.
     """
     # Criamos um array 3D para a conversão, como o cvtColor espera
-    c = np.uint8([[color_bgr]])
-    hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)
+    c = np.uint8([[color_bgr]])  # type: ignore
+    hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)  # type: ignore
 
     # Extrai o valor HSV base
     hue = hsvC[0][0][0]
@@ -162,23 +60,6 @@ def probTargetVisible(image) -> float:
 
     mask = cv2.inRange(hsvImage, LOWER_LIMIT, UPPER_LIMIT)
 
-    # Apply Gaussian blur to reduce noise
-    # mask = cv2.GaussianBlur(mask, (5, 5), 0)
-
-    # Apply morphological operations to further reduce noise
-    # kernel = np.ones((5, 5), np.uint8)
-    # mask = cv2.erode(mask, kernel, iterations=2)
-    # mask = cv2.dilate(mask, kernel, iterations=2)
-    # mask_ = Image.fromarray(mask)
-    # bbox = mask_.getbbox()
-
-    # if bbox is not None:
-    #     x1, y1, x2, y2 = bbox
-    #     # se
-
-    #     image = cv2.rectangle(image, (x1, y1), (x2, y2),
-    #                           (0, 255, 0), 1, cv2.LINE_AA)
-    # resize the image with factor of 3
     mask = cv2.resize(mask, None, fx=3, fy=3)
     cv2.imshow("Webots Camera", mask)
     # Calcular proporção
@@ -187,7 +68,7 @@ def probTargetVisible(image) -> float:
 
     print(f"Proporção de pixels amarelos: {yellow_ratio:.2%}")
     # Definir probabilidade com uma transição suave de 0 a 1
-    prob = 1 - np.power(2, -40 * yellow_ratio)
+    prob = 1 - np.power(2, -25 * yellow_ratio)
     return prob
 
 
@@ -204,13 +85,43 @@ def getAngle(robot_node, target) -> float:
     return -angle
 
 
+def collectData(dist, angle, lidar_data, camera_data):
+    global STEP_COUNT
+
+    # --- Início da Coleta de Dados para a CNN ---
+    # O código abaixo coleta os dados dos sensores e os salva junto com os
+    # valores de "ground truth" (dist, angle) para treinar a CNN posteriormente.
+
+    # Nota: lidar.getRangeImage() é usado para a varredura 1D do Lidar.
+
+    # 2. Converter a imagem da câmera de bytes para um array numpy
+    # A imagem do Webots é BGRA (4 canais).
+    image_np = np.frombuffer(
+        camera_data, np.uint8
+    ).reshape((40, 200, 4))
+
+    # 3. Salvar a amostra de treinamento em um arquivo .npz.
+    np.savez_compressed(
+        os.path.join(SAVE_PATH, f"sample_{STEP_COUNT}.npz"),
+        camera_image=image_np,
+        lidar_data=np.array(lidar_data),
+        dist=dist,
+        angle=angle
+    )
+    STEP_COUNT += 1
+    # --- Fim da Coleta de Dados ---
+
+    return 0
+
+
 REPULSE = "cos"
 VISION = True
 DIST_NEAR = 0.6
+MODE = "train"
 ANGLE_FRONT = 0.0218  # 15 degrees in radians
 
 
-def GPS(robot_node, lidar, target):
+def GPS(robot_node, lidar_data, target):
     """
     Calcula a distância e o ângulo entre o robô e o obstáculo mais próximo.
 
@@ -230,49 +141,99 @@ def GPS(robot_node, lidar, target):
     angle : float
         Ângulo entre o robô e o obstáculo mais próximo.
     """
-    lidar_data = lidar.getRangeImage()  # type: List[int]
     # Posição do obstáculo mais próximo
     min_dist = min(lidar_data)
     min_index = lidar_data.index(min_dist)
 
     angle = 0.0
     angle = getAngle(robot_node, target)
-    if min_dist > DIST_NEAR:
-        return min_dist, angle
-    # min_dist é a distancia do ojbeto mais proximo, eu quero que
-    # objetos a esquerda estejam com distancia negativa e direita com distancia positiva
-    # se ele estiver no centro deve ser
-    if min_index < len(lidar_data) // 2:
+    if min_dist < DIST_NEAR and min_index < len(lidar_data) // 2:
+        # min_dist é a distancia do ojbeto mais proximo, eu quero que
+        # objetos a esquerda estejam com distancia negativa e direita com distancia positiva
+        # se ele estiver no centro deve ser 0
         min_dist = -min_dist
+
+    # add a random noise
+    # min_dist += random.uniform(-0.05, 0.05)
+    # angle += random.uniform(-ANGLE_FRONT, ANGLE_FRONT)
 
     return min_dist, angle
 
 
 def mapSoftEvidence(robot_node, lidar, camera, target):
 
-    # TAREFA- Victor Sales
-    # Inferir a distancia e o angulo entre o robô e o alvo
-    # use a funcao GPS como ground truth
+    reset = False
 
-    # lidar_data = lidar.getRangeImage() #[0.1,0.2, 3.0 ....]
-    # camera_data = camera.getImage() # (shape camera_w, camera_h, 3)
+    # 1. Obter dados dos sensores
+    lidar_data = lidar.getRangeImage()  # type: List[int]
+    camera_data = camera.getImage()    # Retorna uma string de bytes
 
-    # adicione essa linha quando a CNN estiver pronta
-    # dist,angle = CNN(lidar_data,camera_data)
+    if MODE == "collect":
+        dist, angle = GPS(robot_node, lidar_data, target)
+        print("GPS - dist", dist)
+        print("GPS - angle", angle * 180 / np.pi)
 
-    # remover essa linha abaixo quando tiver o CNN
-    dist, angle = GPS(robot_node, lidar, target)
+        # add random noise
+        # dist += random.uniform(-0.05, 0.05)
+        # angle += random.uniform(-ANGLE_FRONT, ANGLE_FRONT)
+    elif MODE == "online":
+        camera_data_np = np.frombuffer(
+            camera_data, np.uint8
+        ).reshape((40, 200, 4))
+        dist, angle = CNN(lidar_data, camera_data_np)
+        dist = dist * np.pi
+        angle = angle * np.pi
 
-    # criar um banco de dados para a CNN, salve em um dataframe em um arquivo csv
-    # as seguintes informacoes de treino
-    # X = camera_image, lidar_data
-    # Y = dist, angle
+        dist2, angle2 = GPS(robot_node, lidar_data, target)
+        if abs(dist2) <= 0.21:
+            reset = True
 
-    
+        # Check if the difference between CNN output and ground truth is greater than 30%
+        dist_diff = abs(dist - dist2)
+        angle_diff = abs(angle - angle2)
+
+        dist_threshold = 0.3 * abs(dist2) if dist2 != 0 else 0.30
+        angle_threshold = 0.3 * abs(angle2) if angle2 != 0 else 0.30
+
+        if dist_diff > dist_threshold or angle_diff > angle_threshold:
+            print(
+                "CNN output differs significantly from ground truth. Calling CNN_online...")
+            CNN_online(lidar_data, camera_data_np, dist2, angle2)
+    elif MODE == "train":
+        dist_gps, angle_gps = GPS(robot_node, lidar_data, target)
+        if abs(dist_gps) <= 0.21:
+            reset = True
 
 
-    print("Angulo Bolinha Amarela", angle * 180 / np.pi)
-    print("Distancia Objeto Mais Próximo", dist)
+        ## random choose True or False
+        choice = random.choice([True, False])
+        if choice:
+            camera_data_np = np.frombuffer(
+                camera_data, np.uint8
+            ).reshape((40, 200, 4))
+            dist_cnn, angle_cnn = CNN(lidar_data, camera_data_np)
+            dist_cnn = dist_cnn * np.pi
+            angle_cnn = angle_cnn * np.pi
+
+            # print the cnn values and the gps values
+            print("CNN - dist", dist_cnn)
+            print("Ground Truth", dist_gps)
+            print("CNN - angle", angle_cnn * 180 / np.pi)
+            print("Ground Truth", angle_gps * 180 / np.pi)
+            dist = dist_cnn
+            angle = angle_cnn
+
+        else:
+            dist = dist_gps
+            angle = angle_gps
+
+        collectData(dist, angle, lidar_data, camera_data)
+
+        
+
+
+    # dist = dist2
+    # angle = angle2
 
     # Soft evidence (probabilidades)
     p_obs_sim = 1 / (1 + np.exp((abs(dist) - DIST_NEAR) * 5))
@@ -280,7 +241,7 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
 
     if VISION:
         p_vis_sim = probTargetVisible(
-            camera.getImage())
+            camera_data)
     else:
         # 45 degrees in radians
         p_vis_sim = 1.0 if abs(angle) < 0.7854 else 0.1
@@ -310,7 +271,13 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
     # 3. Misturar as duas probabilidades usando p_obs_sim como peso.
     #    Se p_obs_sim é alto, o robô prioriza desviar (p_dir_avoidance).
     #    Se p_obs_sim é baixo, o robô prioriza seguir o alvo (p_dir_target).
-    p_dir = p_dir_target * (1 - p_obs_sim) + p_dir_avoidance * p_obs_sim
+    # Aumentamos o peso de p_dir_target por um fator de 2 para que o robô
+    # priorize mais fortemente o alvo quando não há obstáculos.
+    p_dir = p_dir_target * p_obs[1] + p_dir_avoidance * p_obs[0]
+
+    # Como a ponderação desbalanceada faz com que a soma das probabilidades não seja 1,
+    # normalizamos o vetor para garantir que ele seja uma distribuição de probabilidade válida.
+    p_dir /= np.sum(p_dir)
 
     # Virtual evidence: lista de fatores (um para cada variável)
     virtual_evidence = [
@@ -324,7 +291,10 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
     for ev in virtual_evidence:
         print(ev)
 
-    return virtual_evidence
+    return virtual_evidence, reset
+
+
+inference = Bayes.load_model()
 
 
 def bayesian(soft_evidence) -> tuple[str, float]:
