@@ -14,6 +14,21 @@ class RobotDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
+        """
+        Returns the image and label for a given index in the dataset.
+
+        Parameters
+        ----------
+        idx : int
+            The index of the sample to retrieve.
+
+        Returns
+        -------
+        image : PIL.Image
+            The image associated with the given index.
+        label : torch.Tensor
+            The label associated with the given index, a tensor containing distance and angle.
+        """
         row = self.data.iloc[idx]
         img_path = os.path.join(self.img_dir, row["img_path"])
         image = Image.open(img_path).convert("RGB")

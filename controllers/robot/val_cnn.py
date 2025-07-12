@@ -12,7 +12,7 @@ from dataset import RobotDataset
 
 # --- Evaluation Script ---
 
-def evaluate_model():
+def evaluate_model(model):
     # Config
     DATA_DIR = "controllers/robot/dados_treino"
     CSV_PATH = os.path.join(DATA_DIR, "labels.csv")
@@ -24,7 +24,7 @@ def evaluate_model():
     ])
 
     # Load model
-    model = CNNRegressor()
+
     model.load_state_dict(torch.load(MODEL_PATH))
     model.eval()
 
@@ -111,4 +111,5 @@ def evaluate_model():
 
 
 if __name__ == "__main__":
-    evaluate_model()
+    model = CNNRegressor()
+    evaluate_model(model)

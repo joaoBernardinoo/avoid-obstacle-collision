@@ -13,7 +13,7 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
 from PIL import Image
-from train_cnn import CNNRegressor
+from model import CNNRegressor
 
 
 logging.getLogger("pgmpy").setLevel(logging.ERROR)
@@ -167,8 +167,8 @@ def get_limits(color_bgr: List[int]):
     Esta função foi adaptada da imagem que você forneceu.
     """
     # Criamos um array 3D para a conversão, como o cvtColor espera
-    c = np.uint8([[color_bgr]])
-    hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)
+    c = np.uint8([[color_bgr]]) #type: ignore
+    hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV) #type: ignore
 
     # Extrai o valor HSV base
     hue = hsvC[0][0][0]
