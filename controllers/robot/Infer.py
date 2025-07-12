@@ -8,10 +8,21 @@ import cv2
 from PIL import Image
 import math
 from typing import List
+import pandas as pd
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
+import time
 
 logging.getLogger("pgmpy").setLevel(logging.ERROR)
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'bayes_model')
+
+DATA_DIR = "dados_treino"
+os.makedirs(DATA_DIR, exist_ok=True)
+csv_path = os.path.join(DATA_DIR, "labels.csv")
+if not os.path.exists(csv_path):
+    pd.DataFrame(columns=["img_path", "dist", "angle"]).to_csv(csv_path, index=False)
 
 DISPLAY = None
 # Forçar a recriação do modelo com as novas probabilidades
@@ -118,10 +129,64 @@ inference = VariableElimination(model)
 
 # make cnn return the distance to objetct and ang to target
 def CNN(lidar, camera) -> tuple[float, float]:
+    """
+    Usa uma rede neural convolucional treinada para inferir a distância
+    e ângulo entre o robô e o alvo, com base apenas na imagem da câmera.
+    """
+    import torch
+    import torch.nn as nn
+    import torchvision.transforms as transforms
+    from PIL import Image
 
-    return 5.0, 0.0  # Simula uma distância de 5 metros e ângulo de 0 radianos
+    class CNNRegressor(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.features = nn.Sequential(
+                nn.Conv2d(3, 16, 3, stride=2), nn.ReLU(),
+                nn.Conv2d(16, 32, 3, stride=2), nn.ReLU()
+            )
+            # Detecta automaticamente o tamanho da saída
+            with torch.no_grad():
+                dummy_input = torch.zeros(1, 3, 64, 64)
+                dummy_out = self.features(dummy_input)
+                self.flattened_size = dummy_out.view(1, -1).shape[1]
 
-# gets a image and return the prob of target visible
+            self.classifier = nn.Sequential(
+                nn.Flatten(),
+                nn.Linear(self.flattened_size, 64), nn.ReLU(),
+                nn.Linear(64, 2)
+            )
+
+        def forward(self, x):
+            x = self.features(x)
+            x = self.classifier(x)
+            return x
+
+    # Carregar modelo
+    model = CNNRegressor()
+    try:
+        model.load_state_dict(torch.load("modelo_cnn.pth", map_location="cpu"))
+        model.eval()
+    except Exception as e:
+        print(f"[ERRO] Falha ao carregar modelo_cnn.pth: {e}")
+        return 5.0, 0.0  # fallback em caso de erro
+
+    # Preprocessamento da imagem da câmera
+    transform = transforms.Compose([
+        transforms.Resize((64, 64)),
+        transforms.ToTensor(),
+    ])
+
+    img = np.frombuffer(camera.getImage(), np.uint8).reshape((40, 200, 4))
+    img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
+    img = Image.fromarray(img)
+    x = transform(img).unsqueeze(0)  # (1, 3, 64, 64)
+
+    with torch.no_grad():
+        out = model(x).squeeze().numpy()
+        dist, angle = float(out[0]), float(out[1])
+
+    return dist, angle
 
 
 def get_limits(color_bgr: List[int]):
@@ -249,82 +314,58 @@ def GPS(robot_node, lidar, target):
 
 
 def mapSoftEvidence(robot_node, lidar, camera, target):
+    """
+    Versão final para NAVEGAÇÃO AUTÔNOMA.
+    Esta função usa a CNN treinada para inferir a situação e
+    gerar a evidência para a Rede Bayesiana.
+    """
+    # 1. Usar a CNN para inferir distância e ângulo a partir da imagem
+    # A função CNN carrega o modelo 'modelo_cnn.pth' e faz a previsão.
+    dist_estimada, angle_estimado = CNN(lidar, camera) #
 
-    # TAREFA- Victor Sales
-    # Inferir a distancia e o angulo entre o robô e o alvo
-    # use a funcao GPS como ground truth
+    # Imprime os valores que a CNN está "vendo" para debug
+    print(f"CNN -> Dist: {dist_estimada:.2f}, Ângulo: {angle_estimado*180/np.pi:.1f}°")
 
-    # lidar_data = lidar.getRangeImage() #[0.1,0.2, 3.0 ....]
-    # camera_data = camera.getImage() # (shape camera_w, camera_h, 3)
-
-    # adicione essa linha quando a CNN estiver pronta
-    # dist,angle = CNN(lidar_data,camera_data)
-
-    # remover essa linha abaixo quando tiver o CNN
-    dist, angle = GPS(robot_node, lidar, target)
-
-    # criar um banco de dados para a CNN, salve em um dataframe em um arquivo csv
-    # as seguintes informacoes de treino
-    # X = camera_image, lidar_data
-    # Y = dist, angle
-
-    
-
-
-    print("Angulo Bolinha Amarela", angle * 180 / np.pi)
-    print("Distancia Objeto Mais Próximo", dist)
-
-    # Soft evidence (probabilidades)
-    p_obs_sim = 1 / (1 + np.exp((abs(dist) - DIST_NEAR) * 5))
+    # 2. Calcular a Evidência Virtual com base na saída da CNN
+    # Probabilidade de obstáculo (baseada na distância estimada pela CNN)
+    p_obs_sim = 1 / (1 + np.exp((abs(dist_estimada) - DIST_NEAR) * 5)) #
     p_obs = [p_obs_sim, 1 - p_obs_sim]
 
+    # Probabilidade de alvo visível (baseada no ângulo estimado pela CNN)
     if VISION:
-        p_vis_sim = probTargetVisible(
-            camera.getImage())
+        p_vis_sim = probTargetVisible(camera.getImage()) #
     else:
-        # 45 degrees in radians
-        p_vis_sim = 1.0 if abs(angle) < 0.7854 else 0.1
+        p_vis_sim = 1.0 if abs(angle_estimado) < 0.7854 else 0.1 #
     p_vis = [p_vis_sim, 1 - p_vis_sim]
 
-    # --- Probabilidade da Direção (p_dir) ---
-    # Esta seção mapeia a probabilidade da direção com base no ângulo para o alvo
-    # e na probabilidade de detecção de obstáculo (p_obs_sim),
-    # tornando a transição de comportamento mais suave.
+    # Cálculo da direção (baseado na distância e ângulo estimados pela CNN)
+    if angle_estimado < -ANGLE_FRONT: #
+        p_dir_target = np.array([0.8, 0.1, 0.1]) #
+    elif angle_estimado > ANGLE_FRONT: #
+        p_dir_target = np.array([0.1, 0.1, 0.8]) #
+    else:
+        p_dir_target = np.array([0.1, 0.8, 0.1]) #
 
-    # 1. Definir a probabilidade de direção baseada apenas no ângulo para o alvo.
-    #    (Comportamento quando não há obstáculos)
-    if angle < -ANGLE_FRONT:  # Alvo à esquerda
-        p_dir_target = np.array([0.8, 0.1, 0.1])
-    elif angle > ANGLE_FRONT:  # Alvo à direita
-        p_dir_target = np.array([0.1, 0.1, 0.8])
-    else:  # Alvo em frente
-        p_dir_target = np.array([0.1, 0.8, 0.1])
+    if dist_estimada < 0: #
+        p_dir_avoidance = np.array([0.1, 0.2, 0.7]) #
+    else:
+        p_dir_avoidance = np.array([0.7, 0.2, 0.1]) #
 
-    # 2. Definir a probabilidade de direção para desviar de um obstáculo.
-    #    (Comportamento quando um obstáculo está muito próximo)
-    if dist < 0:  # Obstáculo detectado à esquerda
-        p_dir_avoidance = np.array([0.1, 0.2, 0.7])  # Desviar para a direita
-    else:  # Obstáculo detectado à direita ou em frente
-        p_dir_avoidance = np.array([0.7, 0.2, 0.1])  # Desviar para a esquerda
+    p_dir = p_dir_target * (1 - p_obs_sim) + p_dir_avoidance * p_obs_sim #
 
-    # 3. Misturar as duas probabilidades usando p_obs_sim como peso.
-    #    Se p_obs_sim é alto, o robô prioriza desviar (p_dir_avoidance).
-    #    Se p_obs_sim é baixo, o robô prioriza seguir o alvo (p_dir_target).
-    p_dir = p_dir_target * (1 - p_obs_sim) + p_dir_avoidance * p_obs_sim
-
-    # Virtual evidence: lista de fatores (um para cada variável)
+    # 3. Montar e retornar a evidência para a Rede Bayesiana
     virtual_evidence = [
         TabularCPD('ObstacleDetected', 2, [[p_obs[0]], [p_obs[1]]],
-                   state_names={'ObstacleDetected': ['sim', 'nao']}),
+                   state_names={'ObstacleDetected': ['sim', 'nao']}), #
         TabularCPD('TargetVisible', 2, [[p_vis[0]], [p_vis[1]]],
-                   state_names={'TargetVisible': ['sim', 'nao']}),
+                   state_names={'TargetVisible': ['sim', 'nao']}), #
         TabularCPD('Direction', 3, [[p_dir[0]], [p_dir[1]], [p_dir[2]]],
-                   state_names={'Direction': ['esquerda', 'frente', 'direita']})
+                   state_names={'Direction': ['esquerda', 'frente', 'direita']}) #
     ]
-    for ev in virtual_evidence:
-        print(ev)
 
+    # A função não imprime mais a evidência, apenas a retorna
     return virtual_evidence
+
 
 
 def bayesian(soft_evidence) -> tuple[str, float]:
@@ -350,3 +391,4 @@ def bayesian(soft_evidence) -> tuple[str, float]:
     # p_success = prob_success_dist.values[0] # type: ignore
     p_success = 0.0
     return action_str, p_success  # type: ignore
+
