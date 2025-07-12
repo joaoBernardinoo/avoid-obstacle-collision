@@ -152,7 +152,7 @@ def CNN(lidar, camera) -> tuple[float, float]:
     img = np.frombuffer(camera.getImage(), np.uint8).reshape((40, 200, 4))
     img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
     img = Image.fromarray(img)
-    x = transform(img).unsqueeze(0)
+    x = transform(img).unsqueeze(0) # type: ignore
 
     with torch.no_grad():
         out = _model(x).squeeze().numpy()

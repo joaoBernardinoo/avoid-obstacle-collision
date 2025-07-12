@@ -1,15 +1,13 @@
 import os
 import pandas as pd
 import torch
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from PIL import Image
 
-# Config
-DATA_DIR = "dados_treino"
-CSV_PATH = os.path.join(DATA_DIR, "labels.csv")
-IMG_SIZE = (64, 64)
 
 # Dataset
 
@@ -33,16 +31,6 @@ class RobotDataset(Dataset):
         label = torch.tensor([row["dist"], row["angle"]], dtype=torch.float32)
         return image, label
 
-
-# Transforms
-transform = transforms.Compose([
-    transforms.Resize(IMG_SIZE),
-    transforms.ToTensor(),  # Normaliza entre 0 e 1
-])
-
-# Dataset e loader
-dataset = RobotDataset(CSV_PATH, DATA_DIR, transform)
-loader = DataLoader(dataset, batch_size=32, shuffle=True)
 
 # Modelo CNN
 
@@ -73,10 +61,24 @@ class CNNRegressor(nn.Module):
 
 
 if __name__ == "__main__":
+    # Config
+    DATA_DIR = "controllers/robot/dados_treino"
+    CSV_PATH = os.path.join(DATA_DIR, "labels.csv")
+    IMG_SIZE = (64, 64)
+    transform = transforms.Compose([
+        transforms.Resize(IMG_SIZE),
+        transforms.ToTensor(),  # Normaliza entre 0 e 1
+    ])
+    dataset = RobotDataset(CSV_PATH, DATA_DIR, transform)
+    loader = DataLoader(dataset, batch_size=32, shuffle=True)
+
     # Treinamento
     model = CNNRegressor()
     optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
     loss_fn = nn.MSELoss()
+
+    # Histórico de treinamento
+    train_losses = []
 
     for epoch in range(50):
         total_loss = 0
@@ -87,7 +89,19 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
             total_loss += loss.item()
-        print(f"[Epoch {epoch}] Loss: {total_loss:.4f}")
+
+        train_loss = total_loss / len(loader)
+        train_losses.append(train_loss)
+        print(f"[Epoch {epoch}] Loss: {train_loss:.4f}")
+
+    # Plotar o histórico de treinamento
+    plt.figure()
+    plt.plot(train_losses, label='Training Loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Training History')
+    plt.legend()
+    plt.savefig('training_history.png')
 
     # Salvar modelo
     torch.save(model.state_dict(), "modelo_cnn.pth")
