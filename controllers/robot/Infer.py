@@ -3,222 +3,21 @@ import logging
 import sys
 from pathlib import Path
 from pgmpy.factors.discrete import TabularCPD
-import os
-import cv2
-import math
 import random
 import Bayes
-from typing import List, cast
-import h5py
+from typing import List
+
+from .constants import VISION, DIST_NEAR, MODE, ANGLE_FRONT
+from .sensor_processing import probTargetVisible, GPS
+from .data_collection import collectDataHDF5
+
 if True:
     sys.path.append(str(Path(__file__).parent.parent))
     from cnn.NeuralNetwork import CNN, CNN_online
 
 logging.getLogger("pgmpy").setLevel(logging.ERROR)
 
-STEP_COUNT = 0
-if sys.platform == 'linux':
-    SAVE_PATH = Path('/home/dino/SSD/cnn_dataset')
-
-else:
-    SAVE_PATH = Path(os.path.dirname(__file__), 'cnn_dataset')
-
-HDF5_SAVE_PATH = SAVE_PATH.parent / 'cnn_dataset.h5'
-
-
-def get_limits(color_bgr: List[int]):
-    """
-    Calcula os limites de cor HSV inferior e superior a partir de uma cor BGR de entrada.
-    Esta função foi adaptada da imagem que você forneceu.
-    """
-    # Criamos um array 3D para a conversão, como o cvtColor espera
-    c = np.uint8([[color_bgr]])  # type: ignore
-    hsvC = cv2.cvtColor(c, cv2.COLOR_BGR2HSV)  # type: ignore
-
-    # Extrai o valor HSV base
-    hue = hsvC[0][0][0]
-
-    # Define os limites com base no valor de matiz (Hue)
-    # Subtrai 10 do matiz para o limite inferior e adiciona 10 para o superior.
-    # A saturação e o brilho são definidos para um intervalo amplo para capturar
-    # a cor sob diferentes condições de iluminação.
-    lower_limit = np.array([hue - 10, 100, 100], dtype=np.uint8)
-    upper_limit = np.array([hue + 10, 255, 255], dtype=np.uint8)
-
-    return lower_limit, upper_limit
-
-
-YELLOW = [0, 255, 255]
-
-LOWER_LIMIT, UPPER_LIMIT = get_limits(color_bgr=YELLOW)
-
-
-def probTargetVisible(image) -> float:
-    # Converter para HSV
-
-    image = np.frombuffer(
-        image, np.uint8).reshape((40, 200, 4))
-    image = image.copy()
-
-    hsvImage = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
-
-    mask = cv2.inRange(hsvImage, LOWER_LIMIT, UPPER_LIMIT)
-
-    mask = cv2.resize(mask, None, fx=3, fy=3)
-    cv2.imshow("Webots Camera", mask)
-    # Calcular proporção
-    yellow_ratio = np.sum(mask > 0) / mask.size
-    yellow_ratio = float(yellow_ratio)
-
-    print(f"Proporção de pixels amarelos: {yellow_ratio:.2%}")
-    # Definir probabilidade com uma transição suave de 0 a 1
-    prob = 1 - np.power(2, -25 * yellow_ratio)
-    return prob
-
-
-def getAngle(robot_node, target) -> float:
-    """Calcula o ângulo entre o robô e o obstáculo."""
-    obs_pos = target.getPosition()
-    rob_pos = robot_node.getPosition()
-    rob_rot = robot_node.getOrientation()
-    rob_yaw = math.atan2(-rob_rot[1], rob_rot[0])
-    dx = obs_pos[0] - rob_pos[0]
-    dy = obs_pos[1] - rob_pos[1]
-    angle = math.atan2(dy, dx) - rob_yaw
-    angle = (angle + math.pi) % (2 * math.pi) - math.pi
-    return -angle
-
-
-def collectData(dist, angle, lidar_data, camera_data):
-    global STEP_COUNT
-
-    # --- Início da Coleta de Dados para a CNN ---
-    # O código abaixo coleta os dados dos sensores e os salva junto com os
-    # valores de "ground truth" (dist, angle) para treinar a CNN posteriormente.
-
-    # Nota: lidar.getRangeImage() é usado para a varredura 1D do Lidar.
-
-    # 2. Converter a imagem da câmera de bytes para um array numpy
-    # A imagem do Webots é BGRA (4 canais).
-    image_np = np.frombuffer(
-        camera_data, np.uint8
-    ).reshape((40, 200, 4))
-
-    # 3. Salvar a amostra de treinamento em um arquivo .npz.
-    np.savez_compressed(
-        os.path.join(SAVE_PATH, f"sample_{STEP_COUNT}.npz"),
-        camera_image=image_np,
-        lidar_data=np.array(lidar_data),
-        dist=dist,
-        angle=angle
-    )
-    STEP_COUNT += 1
-    # --- Fim da Coleta de Dados ---
-
-    return 0
-
-
-def collectDataHDF5(dist, angle, lidar_data, camera_data):
-    """
-    Collects and appends sensor data to a single HDF5 file.
-
-    The function saves the camera image, LIDAR data, and ground truth labels
-    (distance and angle) into datasets within an HDF5 file. If the file or
-    datasets don't exist, they are created. Subsequent calls append new data
-    to the existing datasets, making them grow over time.
-    """
-    global STEP_COUNT
-
-    # 1. Convert camera image from bytes to a numpy array
-    image_np = np.frombuffer(
-        camera_data, np.uint8
-    ).reshape((40, 200, 4))
-    lidar_np = np.array(lidar_data)
-
-    # 2. Open the HDF5 file in append mode
-    with h5py.File(HDF5_SAVE_PATH, 'a') as hf:
-        # 3. Check if datasets exist. If not, create them.
-        if 'camera_image' not in hf:
-            # Create datasets that can be resized
-            hf.create_dataset('camera_image', data=[image_np],
-                              compression="gzip", chunks=True,
-                              maxshape=(None, 40, 200, 4))
-            hf.create_dataset('lidar_data', data=[lidar_np],
-                              compression="gzip", chunks=True,
-                              maxshape=(None, len(lidar_np)))
-            hf.create_dataset('dist', data=[dist],
-                              compression="gzip", chunks=True,
-                              maxshape=(None,))
-            hf.create_dataset('angle', data=[angle],
-                              compression="gzip", chunks=True,
-                              maxshape=(None,))
-        else:
-            # 4. If datasets exist, resize and append new data
-            # We use cast to inform Pylance about the correct type
-            camera_dset = cast(h5py.Dataset, hf['camera_image'])
-            camera_dset.resize((camera_dset.shape[0] + 1), axis=0)
-            camera_dset[-1] = image_np
-
-            lidar_dset = cast(h5py.Dataset, hf['lidar_data'])
-            lidar_dset.resize((lidar_dset.shape[0] + 1), axis=0)
-            lidar_dset[-1] = lidar_np
-
-            dist_dset = cast(h5py.Dataset, hf['dist'])
-            dist_dset.resize((dist_dset.shape[0] + 1), axis=0)
-            dist_dset[-1] = dist
-
-            angle_dset = cast(h5py.Dataset, hf['angle'])
-            angle_dset.resize((angle_dset.shape[0] + 1), axis=0)
-            angle_dset[-1] = angle
-
-    STEP_COUNT += 1
-    return 0
-
-
-REPULSE = "cos"
-VISION = True
-DIST_NEAR = 0.6
-MODE = "online"
-ANGLE_FRONT = 0.0218  # 15 degrees in radians
-
-
-def GPS(robot_node, lidar_data, target):
-    """
-    Calcula a distância e o ângulo entre o robô e o obstáculo mais próximo.
-
-    Parameters
-    ----------
-    robot_node : Supervisor
-        Nó do robô.
-    lidar : Lidar
-        Sensor de distância do robô.
-    target : Node
-        Nó do obstáculo.
-
-    Returns
-    -------
-    dist : float
-        Distância do obstáculo mais próximo.
-    angle : float
-        Ângulo entre o robô e o obstáculo mais próximo.
-    """
-    # Posição do obstáculo mais próximo
-    min_dist = min(lidar_data)
-    min_index = lidar_data.index(min_dist)
-
-    angle = 0.0
-    angle = getAngle(robot_node, target)
-    if min_dist < DIST_NEAR and min_index < len(lidar_data) // 2:
-        # min_dist é a distancia do ojbeto mais proximo, eu quero que
-        # objetos a esquerda estejam com distancia negativa e direita com distancia positiva
-        # se ele estiver no centro deve ser 0
-        min_dist = -min_dist
-
-    # add a random noise
-    # min_dist += random.uniform(-0.05, 0.05)
-    # angle += random.uniform(-ANGLE_FRONT, ANGLE_FRONT)
-
-    return min_dist, angle
+inference = Bayes.load_model()
 
 
 def mapSoftEvidence(robot_node, lidar, camera, target):
@@ -296,8 +95,10 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
             dist = dist_gps
             angle = angle_gps
 
+        cam_w = camera.getWidth()
+        cam_h = camera.getHeight()
         # collectData(dist_gps, angle_gps, lidar_data, camera_data)
-        collectDataHDF5(dist_gps, angle_gps, lidar_data, camera_data)
+        collectDataHDF5(dist_gps, angle_gps, lidar_data, camera_data, cam_w, cam_h )
 
     if VISION:
         p_vis_sim = probTargetVisible(
@@ -356,9 +157,6 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
         print(ev)
 
     return virtual_evidence, reset
-
-
-inference = Bayes.load_model()
 
 
 def bayesian(soft_evidence) -> tuple[str, float]:
