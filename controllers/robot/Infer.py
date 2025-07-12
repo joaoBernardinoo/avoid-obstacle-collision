@@ -12,7 +12,9 @@ import pandas as pd
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
-import time
+from PIL import Image
+from train_cnn import CNNRegressor
+
 
 logging.getLogger("pgmpy").setLevel(logging.ERROR)
 
@@ -125,6 +127,7 @@ if not os.path.exists(MODEL_PATH):
 
 # Criar um objeto de inferência
 inference = VariableElimination(model)
+_model = CNNRegressor()
 
 
 # make cnn return the distance to objetct and ang to target
@@ -133,40 +136,9 @@ def CNN(lidar, camera) -> tuple[float, float]:
     Usa uma rede neural convolucional treinada para inferir a distância
     e ângulo entre o robô e o alvo, com base apenas na imagem da câmera.
     """
-    import torch
-    import torch.nn as nn
-    import torchvision.transforms as transforms
-    from PIL import Image
-
-    class CNNRegressor(nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.features = nn.Sequential(
-                nn.Conv2d(3, 16, 3, stride=2), nn.ReLU(),
-                nn.Conv2d(16, 32, 3, stride=2), nn.ReLU()
-            )
-            # Detecta automaticamente o tamanho da saída
-            with torch.no_grad():
-                dummy_input = torch.zeros(1, 3, 64, 64)
-                dummy_out = self.features(dummy_input)
-                self.flattened_size = dummy_out.view(1, -1).shape[1]
-
-            self.classifier = nn.Sequential(
-                nn.Flatten(),
-                nn.Linear(self.flattened_size, 64), nn.ReLU(),
-                nn.Linear(64, 2)
-            )
-
-        def forward(self, x):
-            x = self.features(x)
-            x = self.classifier(x)
-            return x
-
-    # Carregar modelo
-    model = CNNRegressor()
     try:
-        model.load_state_dict(torch.load("modelo_cnn.pth", map_location="cpu"))
-        model.eval()
+        _model.load_state_dict(torch.load("modelo_cnn.pth", map_location="cpu"))
+        _model.eval()
     except Exception as e:
         print(f"[ERRO] Falha ao carregar modelo_cnn.pth: {e}")
         return 5.0, 0.0  # fallback em caso de erro
@@ -180,10 +152,10 @@ def CNN(lidar, camera) -> tuple[float, float]:
     img = np.frombuffer(camera.getImage(), np.uint8).reshape((40, 200, 4))
     img = cv2.cvtColor(img, cv2.COLOR_BGRA2BGR)
     img = Image.fromarray(img)
-    x = transform(img).unsqueeze(0)  # (1, 3, 64, 64)
+    x = transform(img).unsqueeze(0)
 
     with torch.no_grad():
-        out = model(x).squeeze().numpy()
+        out = _model(x).squeeze().numpy()
         dist, angle = float(out[0]), float(out[1])
 
     return dist, angle
