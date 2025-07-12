@@ -48,22 +48,7 @@ def load_model():
             values=[[0.33], [0.34], [0.33]],
             state_names={'Direction': ['esquerda', 'frente', 'direita']}
         )
-        # values = [
-        #     # seguir, v_esq, v_dir, parar
-        #     [0.15, 0.45, 0.00, 0.40],  # ( sim, sim, esquerda )
-        #     [0.40, 0.00, 0.00, 0.60],  # ( sim, sim, frente )
-        #     [0.15, 0.00, 0.45, 0.40],  # ( sim, sim, direita )
-        #     [0.10, 0.80, 0.10, 0.00],  # ( sim, nao, esquerda )
-        #     [0.10, 0.45, 0.45, 0.00],  # ( sim, nao, frente )
-        #     [0.10, 0.10, 0.80, 0.00],  # ( sim, nao, direita )
-        #     [0.80, 0.00, 0.00, 0.20],  # ( nao, sim, esquerda )
-        #     [0.90, 0.00, 0.00, 0.10],  # ( nao, sim, frente )
-        #     [0.80, 0.00, 0.00, 0.20],  # ( nao, sim, direita )
-        #     [0.10, 0.50, 0.30, 0.10],  # ( nao, nao, esquerda )
-        #     [0.40, 0.25, 0.25, 0.10],  # ( nao, nao, frente )
-        #     [0.10, 0.30, 0.50, 0.10]   # ( nao, nao, direita )
-        # ]
-
+        
         values = [
             # seguir, v_esq, v_dir, parar
             [0.20, 0.50, 0.00, 0.30],  # ( sim, sim, esquerda )

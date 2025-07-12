@@ -1,7 +1,6 @@
 #!/home/dino/Documents/ia/.venv/bin/python3
-from controller import Robot, Motor, Lidar, Camera, Supervisor  # type: ignore
+from controller import Motor, Lidar, Camera, Supervisor  # type: ignore
 import cv2
-import numpy as np
 
 from Infer import bayesian, mapSoftEvidence
 import sys
@@ -46,7 +45,6 @@ cv2.moveWindow("Webots Camera", 0, 2)
 TARGET = robot.getFromDef("TARGET")
 step_count = 0
 while robot.step(timestep) != -1:
-    # only infer the action in steps multiples of 5
     soft_evidence, reset = mapSoftEvidence(robot_node, lidar, camera, TARGET)
     action, p_sucess = bayesian(soft_evidence=soft_evidence)
     if p_sucess >= 0.9:
@@ -65,10 +63,5 @@ while robot.step(timestep) != -1:
 
     Action.action_map[action]()
     Action.updateWheels(wheels, Action.velocity)
-    # np.savez(os.path.join(SAVE_PATH, f"sample_{step_count}.npz"),
-    #          lidar=np.array(lidar_data),
-    #          camera=np.array(camera_data),
-    #          dist=min_dist,
-    #          ang=min_angle)
 
 print("Robô chegou ao seu destino.")
