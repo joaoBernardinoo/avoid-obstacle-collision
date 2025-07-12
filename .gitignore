@@ -4,4 +4,3 @@ venv/
 __pycache__/
 controllers/genetic/ppo_navigation_tensorboard/logs/*
 *.pyc
-controllers/robot/__pycache__/Infer.cpython-312.pyc

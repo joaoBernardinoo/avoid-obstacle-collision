@@ -178,7 +178,7 @@ def collectDataHDF5(dist, angle, lidar_data, camera_data):
 REPULSE = "cos"
 VISION = True
 DIST_NEAR = 0.6
-MODE = "nav"
+MODE = "online"
 ANGLE_FRONT = 0.0218  # 15 degrees in radians
 
 
@@ -267,7 +267,7 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
         if dist_diff > dist_threshold or angle_diff > angle_threshold:
             print(
                 "CNN output differs significantly from ground truth. Calling CNN_online...")
-            CNN_online(lidar_data, camera_data_np, dist2, angle2)
+            # CNN_online(lidar_data, camera_data_np, dist2, angle2)
             dist = dist2
             angle = angle2
     elif MODE == "train":
