@@ -1,11 +1,14 @@
 #!/home/dino/Documents/ia/.venv/bin/python3
 from controller import Motor, Lidar, Camera, Supervisor  # type: ignore
 import cv2
-
+from mode_processing import process_mode
 from Infer import bayesian, mapSoftEvidence
+from constants import MODE
 import sys
+import numpy as np
 from pathlib import Path
 from typing import List
+sys.path.append(str(Path(__file__).parent))
 
 if True:
     sys.path.append(str(Path(__file__).parent.parent))
@@ -45,7 +48,17 @@ cv2.moveWindow("Webots Camera", 0, 2)
 TARGET = robot.getFromDef("TARGET")
 step_count = 0
 while robot.step(timestep) != -1:
-    soft_evidence, reset = mapSoftEvidence(robot_node, lidar, camera, TARGET)
+    lidar_data = lidar.getRangeImage()  # type: List[float]
+    camera_data = camera.getImage()    # Retorna uma string de bytes
+
+    dist, angle, reset = process_mode(
+        MODE, robot_node, lidar, camera, TARGET, lidar_data, camera_data)
+    
+    # noise_d = 0.1 * dist
+    # noise_a = 0.1 * angle
+    # dist += np.random.uniform(-noise_d, noise_d)
+    # angle += np.random.uniform(-noise_a, noise_a)
+    soft_evidence = mapSoftEvidence(dist, angle, camera_data)
     action, p_sucess = bayesian(soft_evidence=soft_evidence)
     if p_sucess >= 0.9:
         break
@@ -53,6 +66,11 @@ while robot.step(timestep) != -1:
         # reset the robot to the start position
         # translation -1.89737 1.92596 -0.081334
         # rotation -0.011571497788369405 -0.016505796845289522 -0.9997968089114087 0.869511
+        wheels[0].setVelocity(0.0)
+        wheels[1].setVelocity(0.0)
+        wheels[2].setVelocity(0.0)
+        wheels[3].setVelocity(0.0)
+        wheels[0].setVelocity(0.0)
         robot_node.getField('translation').setSFVec3f(
             [-1.89737, 1.92596, -0.081334])
         robot_node.getField('rotation').setSFRotation(

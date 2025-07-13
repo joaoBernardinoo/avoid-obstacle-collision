@@ -3,103 +3,17 @@ import logging
 import sys
 from pathlib import Path
 from pgmpy.factors.discrete import TabularCPD
-import random
 import Bayes
-from typing import List
+from constants import VISION, DIST_NEAR, MODE, ANGLE_FRONT
+from sensor_processing import probTargetVisible
 
-from .constants import VISION, DIST_NEAR, MODE, ANGLE_FRONT
-from .sensor_processing import probTargetVisible, GPS
-from .data_collection import collectDataHDF5
 
-if True:
-    sys.path.append(str(Path(__file__).parent.parent))
-    from cnn.NeuralNetwork import CNN, CNN_online
 
 logging.getLogger("pgmpy").setLevel(logging.ERROR)
 
 inference = Bayes.load_model()
 
-
-def mapSoftEvidence(robot_node, lidar, camera, target):
-
-    reset = False
-
-    # 1. Obter dados dos sensores
-    lidar_data = lidar.getRangeImage()  # type: List[int]
-    camera_data = camera.getImage()    # Retorna uma string de bytes
-
-    if MODE == "nav":
-        camera_data_np = np.frombuffer(
-            camera_data, np.uint8
-        ).reshape((40, 200, 4))
-        dist, angle = CNN(lidar_data, camera_data_np)
-
-        dist = np.multiply(dist, 3.14)
-        print("CNN - dist", dist)
-
-        print("CNN - angle", angle * 180)
-        angle = np.multiply(angle, np.pi)
-
-    elif MODE == "online":
-        camera_data_np = np.frombuffer(
-            camera_data, np.uint8
-        ).reshape((40, 200, 4))
-        dist, angle = CNN(lidar_data, camera_data_np)
-        dist = np.multiply(dist, 3.14)
-        angle = np.multiply(angle, np.pi)
-
-        dist2, angle2 = GPS(robot_node, lidar_data, target)
-        # Check if the difference between CNN output and ground truth is greater than 30%
-        dist_diff = abs(dist - dist2)
-        angle_diff = abs(angle - angle2)
-
-        dist_threshold = 0.3 * abs(dist2) if dist2 != 0 else 0.30
-        angle_threshold = 0.3 * abs(angle2) if angle2 != 0 else 0.30
-
-        print("CNN - dist", dist)
-        print("Ground Truth", dist2)
-        print("CNN - angle", angle * 180 / np.pi)
-        print("Ground Truth", angle2 * 180 / np.pi)
-        if abs(dist2) <= 0.21:
-            reset = True
-
-        if dist_diff > dist_threshold or angle_diff > angle_threshold:
-            print(
-                "CNN output differs significantly from ground truth. Calling CNN_online...")
-            # CNN_online(lidar_data, camera_data_np, dist2, angle2)
-            dist = dist2
-            angle = angle2
-    elif MODE == "train":
-        dist_gps, angle_gps = GPS(robot_node, lidar_data, target)
-        if abs(dist_gps) <= 0.21:
-            reset = True
-
-        choice = random.random() < 0.40
-        if choice:
-            camera_data_np = np.frombuffer(
-                camera_data, np.uint8
-            ).reshape((40, 200, 4))
-            dist_cnn, angle_cnn = CNN(lidar_data, camera_data_np)
-            dist_cnn = dist_cnn * np.pi
-            angle_cnn = angle_cnn * np.pi
-
-            # print the cnn values and the gps values
-            print("CNN - dist", dist_cnn)
-            print("Ground Truth", dist_gps)
-            print("CNN - angle", angle_cnn * 180 / np.pi)
-            print("Ground Truth", angle_gps * 180 / np.pi)
-            dist = dist_cnn
-            angle = angle_cnn
-
-        else:
-            dist = dist_gps
-            angle = angle_gps
-
-        cam_w = camera.getWidth()
-        cam_h = camera.getHeight()
-        # collectData(dist_gps, angle_gps, lidar_data, camera_data)
-        collectDataHDF5(dist_gps, angle_gps, lidar_data, camera_data, cam_w, cam_h )
-
+def mapSoftEvidence(dist, angle, camera_data):
     if VISION:
         p_vis_sim = probTargetVisible(
             camera_data)
@@ -156,7 +70,7 @@ def mapSoftEvidence(robot_node, lidar, camera, target):
     for ev in virtual_evidence:
         print(ev)
 
-    return virtual_evidence, reset
+    return virtual_evidence
 
 
 def bayesian(soft_evidence) -> tuple[str, float]:

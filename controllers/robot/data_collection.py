@@ -4,10 +4,8 @@ import os
 from typing import cast
 from constants import SAVE_PATH, HDF5_SAVE_PATH
 
-STEP_COUNT = 0
 
-def collectDataHDF5(dist, angle, lidar_data, camera_data,cam_w,cam_h):
-    global STEP_COUNT
+def collectDataHDF5(dist, angle, lidar_data, camera_data, cam_w, cam_h):
     image_np = np.frombuffer(camera_data, np.uint8).reshape((cam_h, cam_w, 4))
     lidar_np = np.array(lidar_data)
 
@@ -15,7 +13,7 @@ def collectDataHDF5(dist, angle, lidar_data, camera_data,cam_w,cam_h):
         if 'camera_image' not in hf:
             hf.create_dataset('camera_image', data=[image_np],
                               compression="gzip", chunks=True,
-                              maxshape=(None, 40, 200, 4))
+                              maxshape=(None, cam_h, cam_w, 4))
             hf.create_dataset('lidar_data', data=[lidar_np],
                               compression="gzip", chunks=True,
                               maxshape=(None, len(lidar_np)))
@@ -42,5 +40,4 @@ def collectDataHDF5(dist, angle, lidar_data, camera_data,cam_w,cam_h):
             angle_dset.resize((angle_dset.shape[0] + 1), axis=0)
             angle_dset[-1] = angle
 
-    STEP_COUNT += 1
     return 0
