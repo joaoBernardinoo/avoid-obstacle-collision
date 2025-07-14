@@ -2,36 +2,36 @@ import torch
 import torch.nn as nn
 from torchvision.models import mobilenet_v3_small, MobileNet_V3_Small_Weights
 
-import joblib
-
-
-
 class LidarVisionFusionNet(nn.Module):
-    def __init__(self, lidar_input_features=20, num_outputs=2):
+    def __init__(self, lidar_input_features=360, num_outputs=2):
         super(LidarVisionFusionNet, self).__init__()
 
-        # --- Vision Branch (Inalterada) ---
         weights = MobileNet_V3_Small_Weights.DEFAULT
         self.vision_transforms = weights.transforms()
+
         mobilenet = mobilenet_v3_small(weights=weights)
         self.vision_branch = mobilenet.features
-        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        vision_output_features = 576 # Saída do MobileNetV3-Small features
 
-        # --- LiDAR Branch (Simplificada) ---
-        # Reduzida para uma única camada linear para extrair features do LiDAR
-        lidar_output_features = 32
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        vision_output_features = 576
+
         self.lidar_branch = nn.Sequential(
-            nn.Linear(lidar_input_features, lidar_output_features),
+            nn.Flatten(),
+            nn.Linear(lidar_input_features, 256),
             nn.ReLU()
         )
 
-        # --- Fusion Head (Muito Simplificada) ---
-        # Reduzida para uma camada oculta. Sem BatchNorm para maior velocidade.
+        lidar_output_features = 256
+
         self.fusion_head = nn.Sequential(
-            nn.Linear(vision_output_features + lidar_output_features, 128),
+            nn.Linear(vision_output_features + lidar_output_features, 256),
+            nn.BatchNorm1d(256),
             nn.ReLU(),
-            nn.Dropout(0.5), # Dropout pode ser um pouco maior em modelos menores
+            nn.Dropout(0.3),
+            nn.Linear(256, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Dropout(0.3),
             nn.Linear(128, num_outputs)
         )
 
@@ -48,5 +48,12 @@ class LidarVisionFusionNet(nn.Module):
 
         # Fusão e Classificação
         combined_features = torch.cat([vision_features, lidar_features], dim=1)
+        output = self.fusion_head(combined_features)
+        return output
+        lidar = lidar.unsqueeze(1)
+        lidar_features = self.lidar_branch(lidar)
+
+        combined_features = torch.cat([vision_features, lidar_features], dim=1)
+
         output = self.fusion_head(combined_features)
         return output

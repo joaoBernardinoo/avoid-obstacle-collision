@@ -27,7 +27,6 @@ def get_limits(color_bgr: List[int]):
     upper_limit = np.array([hue + 10, 255, 255], dtype=np.uint8)
     return lower_limit, upper_limit
 
-
 LOWER_LIMIT, UPPER_LIMIT = get_limits(color_bgr=YELLOW)
 
 REPULSE = "cos"
