@@ -1,11 +1,10 @@
-#!/home/dino/Documents/ia/.venv/bin/python3
+#!/home/dino/Documents/avoid-obstacle-collision/.venv/bin/python
 from controller import Motor, Lidar, Camera, Supervisor  # type: ignore
 import cv2
 from mode_processing import process_mode
 from Infer import bayesian, mapSoftEvidence
 from constants import MODE
 import sys
-import numpy as np
 from pathlib import Path
 from typing import List
 sys.path.append(str(Path(__file__).parent))

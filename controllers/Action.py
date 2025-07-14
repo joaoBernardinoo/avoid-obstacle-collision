@@ -1,9 +1,9 @@
 # Definindo as funções que as ações devem chamar
 MAX_SPEED = 6.28  # maximum speed of the robot's motors
 TURN_RATE_FOWARD = 0.6
-TURN_RATE_BACKWARD = 0.1
-SPEED = 0.5
-SMOOTH = "norm"
+TURN_RATE_BACKWARD = 0.2
+SPEED = 0.6
+SMOOTH = "exp"
 velocity = [0.0, 0.0, 0.0, 0.0]
 
 
