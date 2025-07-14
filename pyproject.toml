@@ -13,4 +13,5 @@ dependencies = [
     "pillow>=11.3.0",
     "pyparsing>=3.2.3",
     "scipy==1.15.3",
+    "tensorflow>=2.19.0",
 ]

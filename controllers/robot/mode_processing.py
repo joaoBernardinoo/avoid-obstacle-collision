@@ -20,7 +20,7 @@ def _process_gps_mode(robot_node, lidar_data, target):
     return dist, angle, False
 
 
-def _process_nav_mode(lidar_data, camera_data, target):
+def _process_nav_mode(robot_node,lidar_data,camera_data, target):
     """
     Processa dados de Lidar e Câmera usando uma rede neural para prever distância e ângulo.
 
@@ -35,7 +35,7 @@ def _process_nav_mode(lidar_data, camera_data, target):
     #     camera_data, np.uint8
     # ).reshape((40, 200, 4))
     dist = MLP(lidar_data)
-    dist_gps, AngToTarget = GPS(lidar_data, camera_data, target)
+    dist_gps, AngToTarget = GPS(robot_node,lidar_data, target)
     print("MLP - dist", dist)
     print("GPS - dist", dist_gps)
     print("CNN - angle", AngToTarget * 180)
@@ -95,7 +95,7 @@ def _process_train_mode(robot_node, lidar_data, camera, target, camera_data):
 
 def process_mode(mode, robot_node, lidar, camera, target, lidar_data, camera_data):
     if mode == "nav":
-        return _process_nav_mode(lidar_data, camera_data,target)
+        return _process_nav_mode(robot_node,lidar_data,camera,target)
     elif mode == "online":
         return _process_online_mode(robot_node, lidar_data, camera, target, camera_data)
     elif mode == "train":
