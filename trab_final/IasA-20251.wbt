@@ -105,7 +105,7 @@ DEF ROBOT Robot {
             mass 1
           }
           horizontalResolution 20
-          fieldOfView 3
+          fieldOfView 2.75
           verticalFieldOfView 0.1
           numberOfLayers 1
           maxRange 3.14
@@ -222,8 +222,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation -0.13311792877128414 0.1970000017861194 0.10991004856389713
-        rotation 0.5986386745160635 -0.5986306781269646 0.5322340167434818 4.119789393985962
+        translation -0.13311792877128412 0.1970000017861194 0.10991004856389701
+        rotation 0.5986386745160612 -0.5986306781269676 0.5322340167434813 4.119789393985963
         children [
           DEF RIM_AND_TIRE_SHAPES Group {
             children [
@@ -366,8 +366,6 @@ DEF ROBOT Robot {
           density -1
           mass 0.8
         }
-        linearVelocity -3.4087789716672077e-07 1.04255171872824e-06 2.323640507242757e-06
-        angularVelocity -8.437849315813151e-06 -2.608435950385661e-06 5.933132012964415e-09
       }
     }
     Pose {
@@ -416,8 +414,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation -0.13309432284705397 -0.19699999819027889 0.10990804000593876
-        rotation 0.5483055126724944 -0.5482976984098508 0.6314512639083191 4.268035958926085
+        translation -0.13309432284705403 -0.19699999819027889 0.10990804000593879
+        rotation 0.5483055126724944 -0.5482976984098492 0.6314512639083203 4.2680359589260926
         children [
           USE RIM_AND_TIRE_SHAPES
           DEF RIGHT_CAP_AND_VALVE_SHAPES Group {
@@ -464,8 +462,6 @@ DEF ROBOT Robot {
         name "back right wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
-        linearVelocity -3.307561248496171e-07 1.0415071666006442e-06 3.6661044401852367e-06
-        angularVelocity -8.439800145681044e-06 -2.611036284221273e-06 5.934704287095595e-09
       }
     }
     DEF FRONT_LEFT_WHEEL HingeJoint {
@@ -484,8 +480,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation 0.13314471480780438 0.1970000023086336 0.11014370768141142
-        rotation 0.46252400201885546 -0.46252179947376865 -0.7564027581705453 1.846432005387343
+        translation 0.1331447148078043 0.1970000023086336 0.1101437076814114
+        rotation 0.46252400201885585 -0.4625217994737721 -0.7564027581705433 1.8464320053873402
         children [
           USE RIM_AND_TIRE_SHAPES
           USE LEFT_CAP_AND_VALVE_SHAPES
@@ -493,8 +489,6 @@ DEF ROBOT Robot {
         name "front left wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
-        linearVelocity -2.553363753172297e-07 8.55273557190185e-07 4.563907403606959e-06
-        angularVelocity -8.421220467713882e-06 -2.5863481835862697e-06 5.926494169997904e-09
       }
     }
     DEF FRONT_RIGHT_WHEEL HingeJoint {
@@ -513,8 +507,8 @@ DEF ROBOT Robot {
         }
       ]
       endPoint Solid {
-        translation 0.1331153507003187 -0.1969985932887077 0.10987255290304744
-        rotation 0.6701836729195938 -0.6701764452283063 0.3189316177696311 3.7590600746720435
+        translation 0.1331153507003188 -0.1969985932887077 0.10987255290304763
+        rotation 0.670183672919584 -0.6701764452283161 0.318931617769631 3.759060074672017
         children [
           USE RIM_AND_TIRE_SHAPES
           USE RIGHT_CAP_AND_VALVE_SHAPES
@@ -522,8 +516,6 @@ DEF ROBOT Robot {
         name "front right wheel"
         boundingObject USE BOUNDING_WHEEL
         physics USE WHEEL_PHYSICS
-        linearVelocity -2.142047477573814e-07 7.684524237029742e-07 5.946726079101735e-06
-        angularVelocity -8.401785054350666e-06 -2.5664202256374343e-06 5.915585678141681e-09
       }
     }
     Pose {
@@ -796,8 +788,6 @@ DEF ROBOT Robot {
   ]
   supervisor TRUE
   cpuConsumption 20
-  linearVelocity -4.648534383226954e-07 1.5113984099896317e-06 3.996851580630019e-06
-  angularVelocity -8.422541512432675e-06 -2.590761901758943e-06 5.917833533350396e-09
 }
 SolidBox {
   translation 0.708464 -1.38034 0.43
