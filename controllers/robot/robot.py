@@ -5,6 +5,7 @@ from mode_processing import process_mode
 from Infer import bayesian, mapSoftEvidence
 from constants import MODE
 import sys
+import numpy as np
 from pathlib import Path
 from typing import List
 sys.path.append(str(Path(__file__).parent))
@@ -49,19 +50,18 @@ step_count = 0
 while robot.step(timestep) != -1:
     lidar_data = lidar.getRangeImage()  # type: List[float]
     camera_data = camera.getImage()    # Retorna uma string de bytes
+    image = np.frombuffer(camera_data, np.uint8).reshape((40, 200, 4))
 
     dist, angle, reset = process_mode(
-        MODE, robot_node, lidar, camera, TARGET, lidar_data, camera_data)
+        MODE, robot_node, lidar, camera, TARGET, lidar_data,image)
     
-    # noise_d = 0.1 * dist
-    # noise_a = 0.1 * angle
-    # dist += np.random.uniform(-noise_d, noise_d)
-    # angle += np.random.uniform(-noise_a, noise_a)
-    soft_evidence = mapSoftEvidence(dist, angle, camera_data)
+    soft_evidence = mapSoftEvidence(dist, angle,image)
     action, p_sucess = bayesian(soft_evidence=soft_evidence)
     if p_sucess >= 0.9:
         break
-    if reset or action == "parar":
+    # if reset or action == "parar":
+    if reset:
+
         # reset the robot to the start position
         # translation -1.89737 1.92596 -0.081334
         # rotation -0.011571497788369405 -0.016505796845289522 -0.9997968089114087 0.869511
