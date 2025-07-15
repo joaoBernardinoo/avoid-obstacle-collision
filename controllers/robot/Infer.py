@@ -8,15 +8,15 @@ from constants import VISION, DIST_NEAR, MODE, ANGLE_FRONT
 from sensor_processing import probTargetVisible
 
 
-
 logging.getLogger("pgmpy").setLevel(logging.ERROR)
 
 inference = Bayes.load_model()
 
-def mapSoftEvidence(dist, angle, camera_data):
+
+def mapSoftEvidence(dist, angle, camera):
     if VISION:
         p_vis_sim = probTargetVisible(
-            camera_data)
+            camera)
     else:
         # 45 degrees in radians
         p_vis_sim = 1.0 if abs(angle) < 0.7854 else 0.1
@@ -52,11 +52,12 @@ def mapSoftEvidence(dist, angle, camera_data):
     #    Se p_obs_sim é baixo, o robô prioriza seguir o alvo (p_dir_target).
     # Aumentamos o peso de p_dir_target por um fator de 2 para que o robô
     # priorize mais fortemente o alvo quando não há obstáculos.
-    p_dir = p_dir_target * p_obs[1] + p_dir_avoidance * p_obs[0]
+    p_dir = p_dir_target * p_obs[1] + \
+        p_dir_avoidance * p_obs[0]
 
     # Como a ponderação desbalanceada faz com que a soma das probabilidades não seja 1,
     # normalizamos o vetor para garantir que ele seja uma distribuição de probabilidade válida.
-    p_dir /= np.sum(p_dir)
+    # p_dir /= np.sum(p_dir)
 
     # Virtual evidence: lista de fatores (um para cada variável)
     virtual_evidence = [
