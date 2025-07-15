@@ -6,6 +6,20 @@ import numpy as np
 
 
 def load_model():
+    """
+    Loads, creates, and saves a Bayesian Network model for inference.
+
+    This function checks for an existing Bayesian model file and removes it if present.
+    It then optionally creates a new Bayesian Network model if one does not exist,
+    defining its structure and conditional probability tables (CPTs) for various variables:
+    - `ObstacleDetected`, `TargetVisible`, `Direction` as root variables with uniform distributions.
+    - `Action` as a dependent variable with a CPT based on `ObstacleDetected`, `TargetVisible`, and `Direction`.
+    - `Success` as a dependent variable with a CPT based on `Action`.
+
+    The model is saved in both .bif and xmlbif formats, and its consistency is checked.
+    An inference object for variable elimination is returned for performing queries on the model.
+    """
+
     MODEL_PATH = os.path.join(os.path.dirname(__file__), 'bayes_model')
 
     if os.path.exists(MODEL_PATH):

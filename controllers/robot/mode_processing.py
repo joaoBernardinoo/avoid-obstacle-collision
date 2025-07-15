@@ -5,7 +5,7 @@ from data_collection import collectDataHDF5
 import sys
 from pathlib import Path
 import random
-from neural import MLP
+from mlp import MLP
 
 if True:
     sys.path.append(str(Path(__file__).parent.parent))
