@@ -6,7 +6,6 @@ from constants import LOWER_LIMIT, UPPER_LIMIT, DIST_NEAR, ANGLE_FRONT
 
 
 def probTargetVisible(image) -> float:
-    image = np.frombuffer(image, np.uint8).reshape((40, 200, 4))
     image = image.copy()
     hsvImage = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     mask = cv2.inRange(hsvImage, LOWER_LIMIT, UPPER_LIMIT)
