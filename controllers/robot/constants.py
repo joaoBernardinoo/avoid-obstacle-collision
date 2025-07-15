@@ -11,7 +11,7 @@ if not sys.platform == 'linux':
 else:
     SAVE_PATH = Path(os.path.dirname(__file__), 'cnn_dataset')
 
-HDF5_SAVE_PATH = SAVE_PATH.parent / 'cnn_dataset.h5'
+HDF5_SAVE_PATH = SAVE_PATH.parent / 'images.h5'
 MLP_PATH = Path(os.path.dirname(__file__), 'mlp.pkl')
 LIDAR_MAX_RANGE = 3.14  # Exemplo: 5 metros
 MODE = "nav"
@@ -26,6 +26,7 @@ def get_limits(color_bgr: List[int]):
     lower_limit = np.array([hue - 10, 100, 100], dtype=np.uint8)
     upper_limit = np.array([hue + 10, 255, 255], dtype=np.uint8)
     return lower_limit, upper_limit
+
 
 LOWER_LIMIT, UPPER_LIMIT = get_limits(color_bgr=YELLOW)
 
