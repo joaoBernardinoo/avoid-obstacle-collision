@@ -4,7 +4,7 @@ from sensor_processing import GPS
 from data_collection import collectDataHDF5
 import sys
 from pathlib import Path
-
+import random
 from neural import MLP
 
 if True:
@@ -12,15 +12,18 @@ if True:
     from cnn.NeuralNetwork import CNN
 
 
-def _process_gps_mode(robot_node, lidar_data, target):
+def _process_gps_mode(robot_node, lidar_data, image, target):
     dist, angle = GPS(robot_node, lidar_data, target)
+    AngToTarget = CNN(image)
+
     print("GPS - dist", dist)
-    print("GPS - angle", angle * 180)
+    print("GPS - angle", angle * 180/np.pi)
+    print("CNN - angle", AngToTarget * 180 / np.pi)
     angle = np.multiply(angle, np.pi)
     return dist, angle, False
 
 
-def _process_nav_mode(robot_node,lidar_data,camera_data, target):
+def _process_nav_mode(robot_node, lidar_data, camera_data, target):
     """
     Processa dados de Lidar e Câmera usando uma rede neural para prever distância e ângulo.
 
@@ -31,48 +34,35 @@ def _process_nav_mode(robot_node,lidar_data,camera_data, target):
     Returns:
         tuple[float, float, bool]: Uma tupla contendo a distância e o ângulo previstos.
     """
-    # camera_data_np = np.frombuffer(
-    #     camera_data, np.uint8
-    # ).reshape((40, 200, 4))
-    dist = MLP(lidar_data)
-    dist_gps, AngToTarget = GPS(robot_node,lidar_data, target)
-    print("MLP - dist", dist)
-    print("GPS - dist", dist_gps)
-    print("CNN - angle", AngToTarget * 180)
-    AngToTarget = np.multiply(AngToTarget, np.pi)
-    return dist, AngToTarget, False
-
-
-def _process_online_mode(robot_node, lidar_data, camera, target, camera_data):
-    reset = False
-    camera_data_np = np.frombuffer(
+    image = np.frombuffer(
         camera_data, np.uint8
     ).reshape((40, 200, 4))
-    dist, angle = CNN(lidar_data, camera_data_np)
-    dist = np.multiply(dist, 3.14)
-    angle = np.multiply(angle, np.pi)
+    DistToObject = MLP(lidar_data)
+    AngToTarget = CNN(image)
+    dist_gps, ang_gps = GPS(robot_node, lidar_data, target)
+    print("MLP - DistToObject", DistToObject)
+    print("GPS - dist", dist_gps)
+    print("GPS - angle", ang_gps * 180 / np.pi)
+    print("CNN - angle", AngToTarget * 180 / np.pi)
+    return DistToObject, AngToTarget, False
 
-    dist2, angle2 = GPS(robot_node, lidar_data, target)
-    # Check if the difference between CNN output and ground truth is greater than 30%
-    dist_diff = abs(dist - dist2)
-    angle_diff = abs(angle - angle2)
 
-    dist_threshold = 0.3 * abs(dist2) if dist2 != 0 else 0.30
-    angle_threshold = 0.3 * abs(angle2) if angle2 != 0 else 0.30
-
-    print("CNN - dist", dist)
-    print("Ground Truth", dist2)
-    print("CNN - angle", angle * 180 / np.pi)
-    print("Ground Truth", angle2 * 180 / np.pi)
-    if abs(dist2) <= 0.21:
+def _process_collect_mode(robot_node, lidar_data, camera, target, camera_data):
+    reset = False
+    dist_gps, angle_gps = GPS(robot_node, lidar_data, target)
+    if abs(dist_gps) <= 0.21:
         reset = True
 
-    if dist_diff > dist_threshold or angle_diff > angle_threshold:
-        print(
-            "CNN output differs significantly from ground truth. Calling CNN_online...")
-        # CNN_online(lidar_data, camera_data_np, dist2, angle2)
-        dist = dist2
-        angle = angle2
+    cam_w = camera.getWidth()
+    cam_h = camera.getHeight()
+    # collectData(dist_gps, angle_gps, lidar_data, camera_data)
+    collectDataHDF5(angle_gps,
+                    camera_data, cam_w, cam_h)
+    # add a randon noise of 1.5% of the distance
+    angle = angle_gps
+    dist = dist_gps
+    print("GPS - dist", dist)
+    print("GPS - angle", angle * 180 / np.pi)
     return dist, angle, reset
 
 
@@ -85,22 +75,25 @@ def _process_train_mode(robot_node, lidar_data, camera, target, camera_data):
     cam_w = camera.getWidth()
     cam_h = camera.getHeight()
     # collectData(dist_gps, angle_gps, lidar_data, camera_data)
-    collectDataHDF5(dist_gps, angle_gps, lidar_data,
+    print("Collecting data...")
+    collectDataHDF5(angle_gps,
                     camera_data, cam_w, cam_h)
-
-    dist_ = dist_gps
+    # add a randon noise of 1.5% of the distance
+    dist = dist_gps
     angle = angle_gps
-    return dist_, angle, reset
+    print("GPS - dist", dist)
+    print("GPS - angle", angle * 180 / np.pi)
+    return dist, angle, reset
 
 
 def process_mode(mode, robot_node, lidar, camera, target, lidar_data, camera_data):
     if mode == "nav":
-        return _process_nav_mode(robot_node,lidar_data,camera,target)
-    elif mode == "online":
-        return _process_online_mode(robot_node, lidar_data, camera, target, camera_data)
+        return _process_nav_mode(robot_node, lidar_data, camera_data, target)
     elif mode == "train":
         return _process_train_mode(robot_node, lidar_data, camera, target, camera_data)
     elif mode == "gps":
-        return _process_gps_mode(robot_node, lidar_data, target)
+        return _process_gps_mode(robot_node, lidar_data, camera_data, target)
+    elif mode == "collect":
+        return _process_collect_mode(robot_node, lidar_data, camera, target, camera_data)
     else:
         raise ValueError(f"Unknown MODE: {mode}")
