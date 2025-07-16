@@ -53,18 +53,25 @@ while robot.step(timestep) != -1:
     image = np.frombuffer(camera_data, np.uint8).reshape((40, 200, 4))
 
     dist, angle, reset = process_mode(
-        MODE, robot_node, lidar, camera, TARGET, lidar_data,image)
-    
-    soft_evidence = mapSoftEvidence(dist, angle,image)
-    action, p_sucess = bayesian(soft_evidence=soft_evidence)
-    if p_sucess >= 0.9:
-        break
-    # if reset or action == "parar":
-    if reset:
+        MODE, robot_node, lidar, camera, TARGET, lidar_data, image)
 
-        # reset the robot to the start position
-        # translation -1.89737 1.92596 -0.081334
-        # rotation -0.011571497788369405 -0.016505796845289522 -0.9997968089114087 0.869511
+    soft_evidence = mapSoftEvidence(dist, angle, image)
+    action, p_sucess = bayesian(soft_evidence=soft_evidence)
+
+    if cv2.waitKey(1) == ord('q'):
+        break
+
+    Action.action_map[action]()
+    Action.updateWheels(wheels, Action.velocity)
+
+    if p_sucess >= 0.9:
+        wheels[0].setVelocity(0.0)
+        wheels[1].setVelocity(0.0)
+        wheels[2].setVelocity(0.0)
+        wheels[3].setVelocity(0.0)
+        wheels[0].setVelocity(0.0)
+        break
+    if reset:
         wheels[0].setVelocity(0.0)
         wheels[1].setVelocity(0.0)
         wheels[2].setVelocity(0.0)
@@ -74,11 +81,4 @@ while robot.step(timestep) != -1:
             [-1.89737, 1.92596, -0.081334])
         robot_node.getField('rotation').setSFRotation(
             [-0.011571497788369405, -0.016505796845289522, -0.9997968089114087, 0.869511])
-
-    if cv2.waitKey(1) == ord('q'):
-        break
-
-    Action.action_map[action]()
-    Action.updateWheels(wheels, Action.velocity)
-
 print("Robô chegou ao seu destino.")

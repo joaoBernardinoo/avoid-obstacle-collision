@@ -3,9 +3,11 @@ import logging
 import sys
 from pathlib import Path
 from pgmpy.factors.discrete import TabularCPD
+from typing import Any  # Importar Any para anotações de tipo
 import Bayes
 from constants import VISION, DIST_NEAR, MODE, ANGLE_FRONT
 from sensor_processing import probTargetVisible
+from pgmpy.factors.discrete import DiscreteFactor
 
 
 logging.getLogger("pgmpy").setLevel(logging.ERROR)
@@ -79,21 +81,49 @@ def bayesian(soft_evidence) -> tuple[str, float]:
     action_map = {0: 'seguir', 1: 'v_esq', 2: 'v_dir', 3: 'parar'}
 
     # Inferir a distribuição de Action com soft evidence
-    action_dist = inference.query(
-        # type: ignore
-        variables=['Action'], virtual_evidence=soft_evidence)
+    # Inferir a distribuição conjunta de Action e Success com soft evidence
+    joint_dist = inference.query(  # Usar Any para anotação de tipo
+        variables=['Action', 'Success'], virtual_evidence=soft_evidence
+    )
 
-    # debug
-    print(action_dist)
+    if joint_dist is None:
+        logging.error("Inferência retornou None para a distribuição conjunta.")
+        return "parar", 0.0  # Retorna uma ação padrão e 0% de sucesso em caso de erro
 
-    action_idx = int(np.argmax(action_dist.values))  # type: ignore
+    # Assegura que joint_dist é um DiscreteFactor após a verificação de None
+    assert isinstance(
+        joint_dist, DiscreteFactor), "joint_dist não é um DiscreteFactor"
+
+    # Encontrar a ação com a maior probabilidade marginal
+    # Para fazer isso, precisamos somar as probabilidades de Success para cada Action
+    action_marginal = joint_dist.marginalize(
+        ['Success'], inplace=False)  # Usar Any para anotação de tipo
+    print(joint_dist)
+
+    if action_marginal is None:
+        logging.error("Marginalização da ação retornou None.")
+        return "parar", 0.0  # Retorna uma ação padrão e 0% de sucesso em caso de erro
+
+    # Assegura que action_marginal é um DiscreteFactor após a verificação de None
+    assert isinstance(
+        action_marginal, DiscreteFactor), "action_marginal não é um DiscreteFactor"
+
+    print("\nDistribuição Marginal de Action:")
+    print(action_marginal)
+
+    action_idx = int(np.argmax(action_marginal.values))
     action_str = action_map[action_idx]
 
-    # # Probabilidade de sucesso para a ação escolhida
-    # prob_success_dist = inference.query(
-    #     variables=['Success'],
-    #     evidence={'Action': action_str}  # Use state name instead of index
-    # ) # type: ignore
-    # p_success = prob_success_dist.values[0] # type: ignore
-    p_success = 0.0
-    return action_str, p_success  # type: ignore
+    # Obter a probabilidade de sucesso para a ação escolhida
+    # P(Success=sim | Action=action_str) = P(Action=action_str, Success=sim) / P(Action=action_str)
+
+    # P(Action=action_str, Success=sim)
+    p_action_and_success = joint_dist.get_value(
+        Action=action_str, Success='sim')
+
+    # P(Action=action_str)
+    p_action = action_marginal.get_value(Action=action_str)
+
+    p_success = p_action_and_success / p_action if p_action > 0 else 0.0
+
+    return action_str, float(p_success)  # Garante que o retorno seja float

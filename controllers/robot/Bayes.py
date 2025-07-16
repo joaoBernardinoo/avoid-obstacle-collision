@@ -62,9 +62,10 @@ def load_model():
             values=[[0.33], [0.34], [0.33]],
             state_names={'Direction': ['esquerda', 'frente', 'direita']}
         )
-        
+
         values = [
             # seguir, v_esq, v_dir, parar
+
             [0.20, 0.50, 0.00, 0.30],  # ( sim, sim, esquerda )
             [0.30, 0.00, 0.00, 0.70],  # ( sim, sim, frente )
             [0.20, 0.00, 0.50, 0.30],  # ( sim, sim, direita )
@@ -97,10 +98,11 @@ def load_model():
         cpt_S = TabularCPD(
             variable='Success',
             variable_card=2,  # 2 estados: sim, nao
+
             values=[
                 # Probabilidade de sucesso 'sim'
-                [0.90,   0.60,   0.60,  0.99],
-                [0.10,   0.40,   0.40,  0.01]  # Probabilidade de sucesso 'nao'
+                [0.50,   0.50,   0.50,  0.60],
+                [0.50,   0.50,   0.50,  0.40]  # Probabilidade de sucesso 'nao'
             ],
             evidence=['Action'],
             evidence_card=[4],
@@ -115,6 +117,7 @@ def load_model():
         # Verificar se o modelo e as CPTs são consistentes
 
         model.save(MODEL_PATH+".bif")
+
         model.save(MODEL_PATH, filetype='xmlbif')
         if not model.check_model():
             raise ValueError("O modelo Bayesiano não é válido.")

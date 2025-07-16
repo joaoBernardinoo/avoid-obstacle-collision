@@ -43,7 +43,7 @@ def _process_nav_mode(robot_node, lidar_data, camera_data, target):
     print("MLP - DistToObject", DistToObject)
     print("GPS - dist", dist_gps)
     print("GPS - angle", ang_gps * 180 / np.pi)
-    print("CNN - angle", AngToTarget * 180 / np.pi)
+    print("CNN - AngleToTarget", AngToTarget * 180 / np.pi)
     return DistToObject, AngToTarget, False
 
 

@@ -5,7 +5,6 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error
 from torch.utils.data import DataLoader
 from pathlib import Path
 
-from models import LidarVisionFusionNet
 from dataset import RobotDataset
 from train import LIDAR_POINTS, MODEL_PATH, DEVICE, BATCH_SIZE
 
